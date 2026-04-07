@@ -133,3 +133,16 @@ export function createTicket(ticketData) {
     body: ticketData,
   });
 }
+
+export function updateTicket(ticketId, ticketData) {
+  return request(`/tickets/${ticketId}`, {
+    method: "PUT",
+    body: JSON.stringify(ticketData),
+  });
+}
+
+export function deleteTicket(ticketId) {
+  return request(`/tickets/${ticketId}`, {
+    method: "DELETE",
+  });
+}
