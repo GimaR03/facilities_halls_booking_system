@@ -40,7 +40,7 @@ export const portalActions = [
   {
     id: "book",
     title: "Book",
-    subtitle: "Open room booking form",
+    subtitle: "Request room booking with approval workflow",
     accent: "teal",
   },
   {

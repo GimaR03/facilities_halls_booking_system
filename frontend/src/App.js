@@ -10,6 +10,7 @@ import { formatLabel, getRoomQuickNote, withSeconds } from "./A_helpers";
 import APortalView from "./A_PortalView";
 import ABookRoomView from "./A_BookRoomView";
 import ABlankView from "./A_BlankView";
+import B_BookingFormView from "./B_BookingFormView";
 import {
   addFloor,
   createBuilding,
@@ -849,27 +850,14 @@ function App() {
     );
   }
 
-  // New Book Room Dashboard
+  // New Booking Form Dashboard
   if (currentDashboard === "book") {
     return (
-      <ABookRoomView
-        clearMessages={clearMessages}
-        setCurrentDashboard={setCurrentDashboard}
-        buildings={buildings}
-        bookRoomSelectedBuildingId={bookRoomSelectedBuildingId}
-        setBookRoomSelectedBuildingId={setBookRoomSelectedBuildingId}
-        setBookRoomSelectedFloorId={setBookRoomSelectedFloorId}
-        bookRoomSelectedBuilding={bookRoomSelectedBuilding}
-        bookRoomSelectedFloorId={bookRoomSelectedFloorId}
-        bookRoomFloors={bookRoomFloors}
-        bookRoomSelectedFloor={bookRoomSelectedFloor}
-        bookRoomRooms={bookRoomRooms}
-        getRoomQuickNote={getRoomQuickNote}
-        formatLabel={formatLabel}
-        setErrorMessage={setErrorMessage}
-        setSuccessMessage={setSuccessMessage}
-        errorMessage={errorMessage}
-        successMessage={successMessage}
+      <B_BookingFormView
+        onBack={() => {
+          clearMessages();
+          setCurrentDashboard("portal");
+        }}
       />
     );
   }
