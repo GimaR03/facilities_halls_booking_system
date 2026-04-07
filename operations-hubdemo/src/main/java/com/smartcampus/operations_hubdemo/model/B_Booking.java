@@ -16,13 +16,11 @@ public class B_Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;  // User who made the booking
+    @Column(name = "user_id", nullable = false)
+    private Long userId;  // User who made the booking
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id", nullable = false)
-    private Room room;  // Room being booked
+    @Column(name = "room_id", nullable = false)
+    private Long roomId;  // Room being booked
     
     @Column(nullable = false)
     private LocalDate bookingDate;  // Date of booking
@@ -71,20 +69,20 @@ public class B_Booking {
         this.id = id;
     }
     
-    public User getUser() {
-        return user;
+    public Long getUserId() {
+        return userId;
     }
     
-    public void setUser(User user) {
-        this.user = user;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
     
-    public Room getRoom() {
-        return room;
+    public Long getRoomId() {
+        return roomId;
     }
     
-    public void setRoom(Room room) {
-        this.room = room;
+    public void setRoomId(Long roomId) {
+        this.roomId = roomId;
     }
     
     public LocalDate getBookingDate() {
