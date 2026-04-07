@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getRoomsAvailable } from '../api/campusApi';
+import { fetchRooms } from '../api/campusApi';
 import { createBooking } from '../api/bookingApi';
 import './B_BookingForm.css';
 
@@ -24,16 +24,16 @@ const B_BookingForm = ({ onBookingSuccess, onCancel }) => {
 
   // Fetch available rooms
   useEffect(() => {
-    const fetchRooms = async () => {
+    const fetchRoomsData = async () => {
       try {
-        const data = await getRoomsAvailable();
+        const data = await fetchRooms();
         setRooms(data);
       } catch (err) {
         setError('Failed to load rooms');
         console.error(err);
       }
     };
-    fetchRooms();
+    fetchRoomsData();
   }, []);
 
   // Handle form input changes

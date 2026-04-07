@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { getMyBookings, getMyBookingsByStatus } from '../api/bookingApi';
-import B_BookingList from './B_BookingList';
+import React, { useState, useEffect, useCallback } from 'react';
+import { getMyBookings } from './api/bookingApi';
+import B_BookingList from './components/B_BookingList';
 import './B_BookingDashboard.css';
 
 /**
@@ -22,7 +22,7 @@ const B_BookingDashboard = ({ onCreateNew }) => {
   // Apply filter when status changes
   useEffect(() => {
     applyFilter();
-  }, [statusFilter, bookings]);
+  }, [applyFilter]);
 
   // Fetch user's bookings
   const fetchBookings = async () => {
@@ -41,14 +41,14 @@ const B_BookingDashboard = ({ onCreateNew }) => {
   };
 
   // Apply status filter
-  const applyFilter = () => {
+  const applyFilter = useCallback(() => {
     if (statusFilter === 'ALL') {
       setFilteredBookings(bookings);
     } else {
       const filtered = bookings.filter(b => b.status === statusFilter);
       setFilteredBookings(filtered);
     }
-  };
+  }, [statusFilter, bookings]);
 
   // Handle booking cancelled
   const handleBookingCancelled = (bookingId) => {
