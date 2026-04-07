@@ -52,7 +52,9 @@ public class CampusController {
                 Map.entry("GET /api/campus/rooms", "Get all rooms"),
                 Map.entry("POST /api/campus/rooms", "Create new room"),
                 Map.entry("PUT /api/campus/rooms/{roomId}", "Update room"),
-                Map.entry("DELETE /api/campus/rooms/{roomId}", "Delete room")
+                Map.entry("DELETE /api/campus/rooms/{roomId}", "Delete room"),
+                Map.entry("GET /api/campus/tickets", "Get all tickets"),
+                Map.entry("POST /api/campus/tickets", "Create new ticket")
         ));
         return response;
     }

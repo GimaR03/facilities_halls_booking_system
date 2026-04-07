@@ -4,11 +4,13 @@ import {
   addFloor,
   createBuilding,
   createRoom,
+  createTicket,
   deleteBuilding as deleteBuildingApi,
   deleteFloor as deleteFloorApi,
   deleteRoom as deleteRoomApi,
   fetchBuildings,
   fetchRooms,
+  fetchTickets,
   updateBuilding as updateBuildingApi,
   updateFloor as updateFloorApi,
   updateRoom as updateRoomApi,
@@ -24,6 +26,17 @@ const roomTypes = [
 ];
 
 const roomStatuses = ["ACTIVE", "INACTIVE", "MAINTENANCE"];
+const ticketCategories = [
+  "EQUIPMENT",
+  "NETWORK",
+  "ELECTRICAL",
+  "PLUMBING",
+  "CLEANING",
+  "SECURITY",
+  "OTHER",
+];
+const ticketPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"];
+const ticketStatuses = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
 const dashboardActions = [
   {
     id: "manage-buildings",
@@ -81,6 +94,7 @@ const portalActions = [
 function App() {
   const [buildings, setBuildings] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [tickets, setTickets] = useState([]);
   const [selectedBuildingId, setSelectedBuildingId] = useState(null);
   const [currentDashboard, setCurrentDashboard] = useState("portal");
   const [blankPageTitle, setBlankPageTitle] = useState("");
@@ -117,6 +131,18 @@ function App() {
   // State for the Book Room Dashboard (from portal)
   const [bookRoomSelectedBuildingId, setBookRoomSelectedBuildingId] = useState(null);
   const [bookRoomSelectedFloorId, setBookRoomSelectedFloorId] = useState(null);
+  const [ticketForm, setTicketForm] = useState({
+    title: "",
+    description: "",
+    category: "EQUIPMENT",
+    priority: "MEDIUM",
+    status: "OPEN",
+    resourceId: "",
+    userId: "",
+    assignedTechnicianId: "",
+    images: [],
+    createdDate: getCurrentDateTimeValue(),
+  });
 
   useEffect(() => {
     loadInitialData();
@@ -138,6 +164,18 @@ function App() {
         {}
       ),
     [rooms]
+  );
+
+  const ticketStatusCount = useMemo(
+    () =>
+      ticketStatuses.reduce(
+        (accumulator, status) => ({
+          ...accumulator,
+          [status]: tickets.filter((ticket) => ticket.status === status).length,
+        }),
+        {}
+      ),
+    [tickets]
   );
 
   const totalFloors = useMemo(
@@ -260,9 +298,14 @@ function App() {
     setIsLoading(true);
     setErrorMessage("");
     try {
-      const [buildingData, roomData] = await Promise.all([fetchBuildings(), fetchRooms()]);
+      const [buildingData, roomData, ticketData] = await Promise.all([
+        fetchBuildings(),
+        fetchRooms(),
+        fetchTickets(),
+      ]);
       setBuildings(buildingData);
       setRooms(roomData);
+      setTickets(ticketData);
       if (buildingData.length > 0) {
         setSelectedBuildingId(buildingData[0].id);
       }
@@ -384,8 +427,60 @@ function App() {
     }
   }
 
+  async function handleCreateTicket(event) {
+    event.preventDefault();
+    clearMessages();
+
+    try {
+      const newTicket = await createTicket(buildTicketFormData(ticketForm));
+
+      setTickets((current) => [newTicket, ...current]);
+      setTicketForm({
+        title: "",
+        description: "",
+        category: "EQUIPMENT",
+        priority: "MEDIUM",
+        status: "OPEN",
+        resourceId: "",
+        userId: "",
+        assignedTechnicianId: "",
+        images: [],
+        createdDate: getCurrentDateTimeValue(),
+      });
+      setSuccessMessage(`Ticket "${newTicket.title}" created successfully.`);
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  }
+
   function withSeconds(time) {
     return time.length === 5 ? `${time}:00` : time;
+  }
+
+  function withDateTimeSeconds(value) {
+    return value.length === 16 ? `${value}:00` : value;
+  }
+
+  function buildTicketFormData(form) {
+    const payload = new FormData();
+    payload.append("title", form.title.trim());
+    payload.append("description", form.description.trim());
+    payload.append("category", form.category);
+    payload.append("priority", form.priority);
+    payload.append("status", form.status);
+    payload.append("resourceId", String(Number(form.resourceId)));
+    payload.append("userId", String(Number(form.userId)));
+    if (form.assignedTechnicianId) {
+      payload.append(
+        "assignedTechnicianId",
+        String(Number(form.assignedTechnicianId))
+      );
+    }
+    payload.append("createdDate", withDateTimeSeconds(form.createdDate));
+    Array.from(form.images || []).forEach((image) => {
+      payload.append("images", image);
+    });
+    return payload;
   }
 
   function clearMessages() {
@@ -402,14 +497,19 @@ function App() {
       return;
     }
 
-    // Handle the "Book" action from portal
-    if (actionId === "book") {
-      setCurrentDashboard("book");
-      // Reset selections when opening the book dashboard
-      setBookRoomSelectedBuildingId(null);
-      setBookRoomSelectedFloorId(null);
-      return;
-    }
+  // Handle the "Book" action from portal
+  if (actionId === "book") {
+    setCurrentDashboard("book");
+    // Reset selections when opening the book dashboard
+    setBookRoomSelectedBuildingId(null);
+    setBookRoomSelectedFloorId(null);
+    return;
+  }
+
+  if (actionId === "ticket") {
+    setCurrentDashboard("ticket");
+    return;
+  }
 
     const selectedAction = portalActions.find((action) => action.id === actionId);
     setBlankPageTitle(selectedAction?.title || "Page");
@@ -430,6 +530,28 @@ function App() {
       .split("_")
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(" ");
+  }
+
+  function getCurrentDateTimeValue() {
+    const now = new Date();
+    const timezoneOffset = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
+  }
+
+  function getTicketStatusTone(status) {
+    if (status === "OPEN") {
+      return "open";
+    }
+
+    if (status === "IN_PROGRESS") {
+      return "progress";
+    }
+
+    if (status === "RESOLVED") {
+      return "resolved";
+    }
+
+    return "closed";
   }
 
   function getRoomQuickNote(room) {
@@ -863,6 +985,299 @@ function App() {
             <h1>{blankPageTitle} Page</h1>
             <p>This page is intentionally blank.</p>
           </header>
+        </div>
+      </main>
+    );
+  }
+
+  if (currentDashboard === "ticket") {
+    return (
+      <main className="dashboard-shell">
+        <div className="abstract-bg" />
+        <div className="dashboard-wrap">
+          <header className="hero-banner portal-hero">
+            <div className="hero-head-row">
+              <span className="hero-tag">Smart Campus Access</span>
+              <button
+                type="button"
+                className="tiny-btn hero-back"
+                onClick={() => {
+                  clearMessages();
+                  setCurrentDashboard("portal");
+                }}
+              >
+                Back To Portal
+              </button>
+            </div>
+            <h1>Ticket Page</h1>
+            <p>
+              Submit a campus support ticket with issue details, priority, related
+              resource, technician assignment, and image references.
+            </p>
+          </header>
+
+          <section className="metrics-row">
+            <article className="metric-card">
+              <span>Total Tickets</span>
+              <strong>{tickets.length}</strong>
+            </article>
+            <article className="metric-card">
+              <span>Open</span>
+              <strong>{ticketStatusCount.OPEN || 0}</strong>
+            </article>
+            <article className="metric-card">
+              <span>In Progress</span>
+              <strong>{ticketStatusCount.IN_PROGRESS || 0}</strong>
+            </article>
+          </section>
+
+          {errorMessage && <p className="message error">{errorMessage}</p>}
+          {successMessage && <p className="message success">{successMessage}</p>}
+
+          <section className="workspace">
+            <div className="workspace-grid two-up">
+              <form className="glass-panel" onSubmit={handleCreateTicket}>
+                <h2>Create Ticket</h2>
+                <div className="ticket-field-grid">
+                  <label>
+                    Title
+                    <input
+                      required
+                      value={ticketForm.title}
+                      onChange={(event) =>
+                        setTicketForm((current) => ({
+                          ...current,
+                          title: event.target.value,
+                        }))
+                      }
+                      placeholder="Projector not working"
+                    />
+                  </label>
+                  <label>
+                    Category
+                    <select
+                      value={ticketForm.category}
+                      onChange={(event) =>
+                        setTicketForm((current) => ({
+                          ...current,
+                          category: event.target.value,
+                        }))
+                      }
+                    >
+                      {ticketCategories.map((category) => (
+                        <option key={category} value={category}>
+                          {formatLabel(category)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Priority
+                    <select
+                      value={ticketForm.priority}
+                      onChange={(event) =>
+                        setTicketForm((current) => ({
+                          ...current,
+                          priority: event.target.value,
+                        }))
+                      }
+                    >
+                      {ticketPriorities.map((priority) => (
+                        <option key={priority} value={priority}>
+                          {formatLabel(priority)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Status
+                    <select
+                      value={ticketForm.status}
+                      onChange={(event) =>
+                        setTicketForm((current) => ({
+                          ...current,
+                          status: event.target.value,
+                        }))
+                      }
+                    >
+                      {ticketStatuses.map((status) => (
+                        <option key={status} value={status}>
+                          {formatLabel(status)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Building No
+                    <input
+                      required
+                      min="1"
+                      type="number"
+                      value={ticketForm.resourceId}
+                      onChange={(event) =>
+                        setTicketForm((current) => ({
+                          ...current,
+                          resourceId: event.target.value,
+                        }))
+                      }
+                      placeholder="3"
+                    />
+                  </label>
+                  <label>
+                    Floor Number
+                    <input
+                      required
+                      min="1"
+                      type="number"
+                      value={ticketForm.userId}
+                      onChange={(event) =>
+                        setTicketForm((current) => ({
+                          ...current,
+                          userId: event.target.value,
+                        }))
+                      }
+                      placeholder="2"
+                    />
+                  </label>
+                  <label>
+                    Lecturer Hall or Lab Number
+                    <input
+                      min="1"
+                      type="number"
+                      value={ticketForm.assignedTechnicianId}
+                      onChange={(event) =>
+                        setTicketForm((current) => ({
+                          ...current,
+                          assignedTechnicianId: event.target.value,
+                        }))
+                      }
+                      placeholder="101"
+                    />
+                  </label>
+                  <label>
+                    Created Date
+                    <input
+                      required
+                      type="datetime-local"
+                      value={ticketForm.createdDate}
+                      onChange={(event) =>
+                        setTicketForm((current) => ({
+                          ...current,
+                          createdDate: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="description-field">
+                    Description
+                    <textarea
+                      required
+                      rows="4"
+                      value={ticketForm.description}
+                      onChange={(event) =>
+                        setTicketForm((current) => ({
+                          ...current,
+                          description: event.target.value,
+                        }))
+                      }
+                      placeholder="Explain the issue clearly so support staff can reproduce it."
+                    />
+                  </label>
+                  <label className="description-field">
+                    Ticket Images
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(event) =>
+                        setTicketForm((current) => ({
+                          ...current,
+                          images: event.target.files || [],
+                        }))
+                      }
+                    />
+                    <small className="field-hint">
+                      Upload one or more image files directly from your device.
+                    </small>
+                  </label>
+                </div>
+                <button type="submit">Submit Ticket</button>
+              </form>
+
+              <article className="glass-panel">
+                <h2>Recent Tickets</h2>
+                <p className="summary-note">
+                  New tickets are saved to the database immediately and listed here in
+                  reverse chronological order.
+                </p>
+
+                <div className="ticket-status-strip">
+                  <span className="ticket-pill open">Open: {ticketStatusCount.OPEN || 0}</span>
+                  <span className="ticket-pill progress">
+                    In Progress: {ticketStatusCount.IN_PROGRESS || 0}
+                  </span>
+                  <span className="ticket-pill resolved">
+                    Resolved: {ticketStatusCount.RESOLVED || 0}
+                  </span>
+                  <span className="ticket-pill closed">
+                    Closed: {ticketStatusCount.CLOSED || 0}
+                  </span>
+                </div>
+
+                {tickets.length === 0 ? (
+                  <p className="empty">No tickets submitted yet.</p>
+                ) : (
+                  <div className="ticket-list">
+                    {tickets.map((ticket) => (
+                      <article key={ticket.id} className="ticket-card">
+                        <div className="ticket-card-head">
+                          <h3>{ticket.title}</h3>
+                          <span className={`ticket-pill ${getTicketStatusTone(ticket.status)}`}>
+                            {formatLabel(ticket.status)}
+                          </span>
+                        </div>
+                        <p>{ticket.description}</p>
+                        <div className="ticket-meta">
+                          <span>{formatLabel(ticket.category)}</span>
+                          <span>{formatLabel(ticket.priority)} Priority</span>
+                          <span>Resource #{ticket.resourceId}</span>
+                          <span>User #{ticket.userId}</span>
+                          <span>
+                            Technician{" "}
+                            {ticket.assignedTechnicianId
+                              ? `#${ticket.assignedTechnicianId}`
+                              : "Unassigned"}
+                          </span>
+                          <span>{ticket.createdDate.replace("T", " ")}</span>
+                        </div>
+                        <ul className="ticket-images">
+                          {ticket.imageUrls.length === 0 ? (
+                            <li>No image URLs attached.</li>
+                          ) : (
+                            ticket.imageUrls.map((url, index) => (
+                              <li key={`${ticket.id}-${index}`}>
+                                <a
+                                  href={
+                                    url.startsWith("/uploads/")
+                                      ? `http://localhost:8080${url}`
+                                      : url
+                                  }
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  {url.split("/").pop()}
+                                </a>
+                              </li>
+                            ))
+                          )}
+                        </ul>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </article>
+            </div>
+          </section>
         </div>
       </main>
     );
