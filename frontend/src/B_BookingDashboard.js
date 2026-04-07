@@ -14,6 +14,16 @@ const B_BookingDashboard = ({ onCreateNew }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Apply status filter
+  const applyFilter = useCallback(() => {
+    if (statusFilter === 'ALL') {
+      setFilteredBookings(bookings);
+    } else {
+      const filtered = bookings.filter(b => b.status === statusFilter);
+      setFilteredBookings(filtered);
+    }
+  }, [statusFilter, bookings]);
+
   // Fetch bookings on component mount
   useEffect(() => {
     fetchBookings();
@@ -39,16 +49,6 @@ const B_BookingDashboard = ({ onCreateNew }) => {
       setLoading(false);
     }
   };
-
-  // Apply status filter
-  const applyFilter = useCallback(() => {
-    if (statusFilter === 'ALL') {
-      setFilteredBookings(bookings);
-    } else {
-      const filtered = bookings.filter(b => b.status === statusFilter);
-      setFilteredBookings(filtered);
-    }
-  }, [statusFilter, bookings]);
 
   // Handle booking cancelled
   const handleBookingCancelled = (bookingId) => {

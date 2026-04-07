@@ -149,3 +149,7 @@ export function deleteTicket(ticketId) {
     method: "DELETE",
   });
 }
+
+export function getRoomsAvailable() {
+  return request("/rooms/available");
+}

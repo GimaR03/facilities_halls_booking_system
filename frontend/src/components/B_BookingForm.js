@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchRooms } from '../api/campusApi';
+import { getRoomsAvailable } from '../api/campusApi';
 import { createBooking } from '../api/bookingApi';
 import './B_BookingForm.css';
 
