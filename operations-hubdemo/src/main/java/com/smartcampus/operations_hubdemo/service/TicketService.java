@@ -45,7 +45,7 @@ public class TicketService {
         ticket.setStatus(request.status());
         ticket.setResourceId(request.resourceId());
         ticket.setUserId(request.userId());
-        ticket.setAssignedTechnicianId(request.assignedTechnicianId());
+        ticket.setAssignedTechnicianId(normalizeOptionalText(request.assignedTechnicianId()));
         ticket.setCreatedDate(request.createdDate());
         ticket.setImageUrls(storeImages(images));
 
@@ -68,6 +68,15 @@ public class TicketService {
                 .filter(file -> file != null && !file.isEmpty())
                 .map(this::storeSingleImage)
                 .toList();
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private String storeSingleImage(MultipartFile image) {

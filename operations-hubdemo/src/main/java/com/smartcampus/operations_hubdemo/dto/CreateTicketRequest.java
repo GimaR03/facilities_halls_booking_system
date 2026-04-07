@@ -33,7 +33,8 @@ public record CreateTicketRequest(
         @NotNull(message = "User ID is required")
         Long userId,
 
-        Long assignedTechnicianId,
+        @Size(max = 100, message = "Hall or lab number must be 100 characters or less")
+        String assignedTechnicianId,
 
         @NotNull(message = "Created date is required")
         LocalDateTime createdDate

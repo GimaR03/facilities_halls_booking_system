@@ -37,6 +37,11 @@ const ticketCategories = [
 ];
 const ticketPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 const ticketStatuses = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+const ticketBuildingOptions = [
+  { value: "1", label: "Main Building", floorCount: 9 },
+  { value: "2", label: "New Building", floorCount: 14 },
+];
+
 function App() {
   const [buildings, setBuildings] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -123,6 +128,25 @@ function App() {
       ),
     [tickets]
   );
+
+  const selectedTicketBuilding = useMemo(
+    () =>
+      ticketBuildingOptions.find(
+        (building) => building.value === String(ticketForm.resourceId)
+      ) || null,
+    [ticketForm.resourceId]
+  );
+
+  const ticketFloorOptions = useMemo(() => {
+    if (!selectedTicketBuilding) {
+      return [];
+    }
+
+    return Array.from(
+      { length: selectedTicketBuilding.floorCount },
+      (_, index) => String(index + 1)
+    );
+  }, [selectedTicketBuilding]);
 
   const totalFloors = useMemo(
     () =>
@@ -416,10 +440,7 @@ function App() {
     payload.append("resourceId", String(Number(form.resourceId)));
     payload.append("userId", String(Number(form.userId)));
     if (form.assignedTechnicianId) {
-      payload.append(
-        "assignedTechnicianId",
-        String(Number(form.assignedTechnicianId))
-      );
+      payload.append("assignedTechnicianId", form.assignedTechnicianId.trim());
     }
     payload.append("createdDate", withDateTimeSeconds(form.createdDate));
     Array.from(form.images || []).forEach((image) => {
@@ -487,6 +508,15 @@ function App() {
 
     return "closed";
   }
+
+  function getTicketBuildingLabel(resourceId) {
+    const matchedBuilding = ticketBuildingOptions.find(
+      (building) => building.value === String(resourceId)
+    );
+
+    return matchedBuilding ? matchedBuilding.label : `Building ${resourceId}`;
+  }
+
   async function handleEditBuilding(building) {
     clearMessages();
     const nextBuildingNo = window.prompt("Building No", building.buildingNo);
@@ -882,27 +912,31 @@ function App() {
                     </select>
                   </label>
                   <label>
-                    Building No
-                    <input
+                    Building
+                    <select
                       required
-                      min="1"
-                      type="number"
                       value={ticketForm.resourceId}
                       onChange={(event) =>
                         setTicketForm((current) => ({
                           ...current,
                           resourceId: event.target.value,
+                          userId: "",
                         }))
                       }
-                      placeholder="3"
-                    />
+                    >
+                      <option value="">Select Building</option>
+                      {ticketBuildingOptions.map((building) => (
+                        <option key={building.value} value={building.value}>
+                          {building.label}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <label>
                     Floor Number
-                    <input
+                    <select
                       required
-                      min="1"
-                      type="number"
+                      disabled={!selectedTicketBuilding}
                       value={ticketForm.userId}
                       onChange={(event) =>
                         setTicketForm((current) => ({
@@ -910,14 +944,21 @@ function App() {
                           userId: event.target.value,
                         }))
                       }
-                      placeholder="2"
-                    />
+                    >
+                      <option value="">
+                        {selectedTicketBuilding ? "Select Floor" : "Select Building First"}
+                      </option>
+                      {ticketFloorOptions.map((floorNumber) => (
+                        <option key={floorNumber} value={floorNumber}>
+                          Floor {floorNumber}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <label>
                     Lecturer Hall or Lab Number
                     <input
-                      min="1"
-                      type="number"
+                      type="text"
                       value={ticketForm.assignedTechnicianId}
                       onChange={(event) =>
                         setTicketForm((current) => ({
@@ -925,8 +966,11 @@ function App() {
                           assignedTechnicianId: event.target.value,
                         }))
                       }
-                      placeholder="101"
+                      placeholder="LH-101 or Lab 2"
                     />
+                    <small className="field-hint">
+                      Enter the hall or lab number manually.
+                    </small>
                   </label>
                   <label>
                     Created Date
@@ -1014,13 +1058,13 @@ function App() {
                         <div className="ticket-meta">
                           <span>{formatLabel(ticket.category)}</span>
                           <span>{formatLabel(ticket.priority)} Priority</span>
-                          <span>Resource #{ticket.resourceId}</span>
-                          <span>User #{ticket.userId}</span>
+                          <span>{getTicketBuildingLabel(ticket.resourceId)}</span>
+                          <span>Floor {ticket.userId}</span>
                           <span>
-                            Technician{" "}
+                            Hall/Lab{" "}
                             {ticket.assignedTechnicianId
-                              ? `#${ticket.assignedTechnicianId}`
-                              : "Unassigned"}
+                              ? ticket.assignedTechnicianId
+                              : "Not Provided"}
                           </span>
                           <span>{ticket.createdDate.replace("T", " ")}</span>
                         </div>
