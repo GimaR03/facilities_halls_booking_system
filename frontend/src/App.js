@@ -15,12 +15,14 @@ import {
   createBuilding,
   createRoom,
   createTicket,
+  deleteTicket as deleteTicketApi,
   deleteBuilding as deleteBuildingApi,
   deleteFloor as deleteFloorApi,
   deleteRoom as deleteRoomApi,
   fetchBuildings,
   fetchRooms,
   fetchTickets,
+  updateTicket as updateTicketApi,
   updateBuilding as updateBuildingApi,
   updateFloor as updateFloorApi,
   updateRoom as updateRoomApi,
@@ -41,6 +43,27 @@ const ticketBuildingOptions = [
   { value: "1", label: "Main Building", floorCount: 9 },
   { value: "2", label: "New Building", floorCount: 14 },
 ];
+
+function getCurrentDateTimeValue() {
+  const now = new Date();
+  const timezoneOffset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
+}
+
+function getEmptyTicketForm() {
+  return {
+    title: "",
+    description: "",
+    category: "EQUIPMENT",
+    priority: "MEDIUM",
+    status: "OPEN",
+    resourceId: "",
+    userId: "",
+    assignedTechnicianId: "",
+    images: [],
+    createdDate: getCurrentDateTimeValue(),
+  };
+}
 
 function App() {
   const [buildings, setBuildings] = useState([]);
@@ -82,18 +105,8 @@ function App() {
   // State for the Book Room Dashboard (from portal)
   const [bookRoomSelectedBuildingId, setBookRoomSelectedBuildingId] = useState(null);
   const [bookRoomSelectedFloorId, setBookRoomSelectedFloorId] = useState(null);
-  const [ticketForm, setTicketForm] = useState({
-    title: "",
-    description: "",
-    category: "EQUIPMENT",
-    priority: "MEDIUM",
-    status: "OPEN",
-    resourceId: "",
-    userId: "",
-    assignedTechnicianId: "",
-    images: [],
-    createdDate: getCurrentDateTimeValue(),
-  });
+  const [ticketForm, setTicketForm] = useState(() => getEmptyTicketForm());
+  const [editingTicketId, setEditingTicketId] = useState(null);
 
   useEffect(() => {
     loadInitialData();
@@ -117,18 +130,6 @@ function App() {
     [rooms]
   );
 
-  const ticketStatusCount = useMemo(
-    () =>
-      ticketStatuses.reduce(
-        (accumulator, status) => ({
-          ...accumulator,
-          [status]: tickets.filter((ticket) => ticket.status === status).length,
-        }),
-        {}
-      ),
-    [tickets]
-  );
-
   const selectedTicketBuilding = useMemo(
     () =>
       ticketBuildingOptions.find(
@@ -147,6 +148,20 @@ function App() {
       (_, index) => String(index + 1)
     );
   }, [selectedTicketBuilding]);
+
+  const myTicketHistory = tickets;
+
+  const myTicketStatusCount = useMemo(
+    () =>
+      ticketStatuses.reduce(
+        (accumulator, status) => ({
+          ...accumulator,
+          [status]: myTicketHistory.filter((ticket) => ticket.status === status).length,
+        }),
+        {}
+      ),
+    [myTicketHistory]
+  );
 
   const totalFloors = useMemo(
     () =>
@@ -405,21 +420,26 @@ function App() {
     clearMessages();
 
     try {
+      if (editingTicketId) {
+        const updatedTicket = await updateTicketApi(
+          editingTicketId,
+          buildTicketUpdatePayload(ticketForm)
+        );
+
+        setTickets((current) =>
+          current.map((ticket) => (ticket.id === editingTicketId ? updatedTicket : ticket))
+        );
+        setEditingTicketId(null);
+        setTicketForm(getEmptyTicketForm());
+        setCurrentDashboard("ticket-history");
+        setSuccessMessage(`Ticket "${updatedTicket.title}" updated successfully.`);
+        return;
+      }
+
       const newTicket = await createTicket(buildTicketFormData(ticketForm));
 
       setTickets((current) => [newTicket, ...current]);
-      setTicketForm({
-        title: "",
-        description: "",
-        category: "EQUIPMENT",
-        priority: "MEDIUM",
-        status: "OPEN",
-        resourceId: "",
-        userId: "",
-        assignedTechnicianId: "",
-        images: [],
-        createdDate: getCurrentDateTimeValue(),
-      });
+      setTicketForm(getEmptyTicketForm());
       setSuccessMessage(`Ticket "${newTicket.title}" created successfully.`);
     } catch (error) {
       setErrorMessage(error.message);
@@ -448,9 +468,67 @@ function App() {
     });
     return payload;
   }
+
+  function buildTicketUpdatePayload(form) {
+    return {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      category: form.category,
+      priority: form.priority,
+      status: form.status,
+      resourceId: Number(form.resourceId),
+      userId: Number(form.userId),
+      assignedTechnicianId: form.assignedTechnicianId.trim() || null,
+      createdDate: withDateTimeSeconds(form.createdDate),
+    };
+  }
+
   function clearMessages() {
     setErrorMessage("");
     setSuccessMessage("");
+  }
+
+  function handleStartTicketEdit(ticket) {
+    clearMessages();
+    setEditingTicketId(ticket.id);
+    setTicketForm({
+      title: ticket.title,
+      description: ticket.description,
+      category: ticket.category,
+      priority: ticket.priority,
+      status: ticket.status,
+      resourceId: String(ticket.resourceId),
+      userId: String(ticket.userId),
+      assignedTechnicianId: ticket.assignedTechnicianId || "",
+      images: [],
+      createdDate: ticket.createdDate.slice(0, 16),
+    });
+    setCurrentDashboard("ticket");
+  }
+
+  function handleCancelTicketEdit() {
+    clearMessages();
+    setEditingTicketId(null);
+    setTicketForm(getEmptyTicketForm());
+  }
+
+  async function handleDeleteTicket(ticketId) {
+    clearMessages();
+    if (!window.confirm("Delete this ticket?")) {
+      return;
+    }
+
+    try {
+      await deleteTicketApi(ticketId);
+      setTickets((current) => current.filter((ticket) => ticket.id !== ticketId));
+      if (editingTicketId === ticketId) {
+        setEditingTicketId(null);
+        setTicketForm(getEmptyTicketForm());
+      }
+      setSuccessMessage("Ticket deleted successfully.");
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
   }
 
   function handlePortalAction(actionId) {
@@ -485,12 +563,6 @@ function App() {
       buildingId,
       floorId: "",
     }));
-  }
-
-  function getCurrentDateTimeValue() {
-    const now = new Date();
-    const timezoneOffset = now.getTimezoneOffset() * 60000;
-    return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
   }
 
   function getTicketStatusTone(status) {
@@ -794,6 +866,109 @@ function App() {
     );
   }
 
+  if (currentDashboard === "ticket-history") {
+    return (
+      <main className="dashboard-shell">
+        <div className="abstract-bg" />
+        <div className="dashboard-wrap">
+          <header className="hero-banner portal-hero">
+            <div className="hero-head-row">
+              <span className="hero-tag">Smart Campus Access</span>
+              <button
+                type="button"
+                className="tiny-btn hero-back"
+                onClick={() => {
+                  clearMessages();
+                  setCurrentDashboard("ticket");
+                }}
+              >
+                Back To Ticket Page
+              </button>
+            </div>
+            <h1>My Ticket History</h1>
+            <p>View, update, or delete your ticket history from this page.</p>
+          </header>
+
+          <section className="metrics-row">
+            <article className="metric-card">
+              <span>My Tickets</span>
+              <strong>{myTicketHistory.length}</strong>
+            </article>
+            <article className="metric-card">
+              <span>Open</span>
+              <strong>{myTicketStatusCount.OPEN || 0}</strong>
+            </article>
+            <article className="metric-card">
+              <span>In Progress</span>
+              <strong>{myTicketStatusCount.IN_PROGRESS || 0}</strong>
+            </article>
+          </section>
+
+          {errorMessage && <p className="message error">{errorMessage}</p>}
+          {successMessage && <p className="message success">{successMessage}</p>}
+
+          <section className="workspace">
+            <article className="glass-panel ticket-history-panel">
+              <div className="panel-header-actions">
+                <h2>My Ticket History</h2>
+                <small className="field-hint">
+                  Tickets created from this browser can be updated or deleted here.
+                </small>
+              </div>
+
+              {myTicketHistory.length === 0 ? (
+                <p className="empty">No personal ticket history found yet.</p>
+              ) : (
+                <div className="ticket-list">
+                  {myTicketHistory.map((ticket) => (
+                    <article key={`history-${ticket.id}`} className="ticket-card">
+                      <div className="ticket-card-head">
+                        <h3>{ticket.title}</h3>
+                        <span className={`ticket-pill ${getTicketStatusTone(ticket.status)}`}>
+                          {formatLabel(ticket.status)}
+                        </span>
+                      </div>
+                      <p>{ticket.description}</p>
+                      <div className="ticket-meta">
+                        <span>{formatLabel(ticket.category)}</span>
+                        <span>{formatLabel(ticket.priority)} Priority</span>
+                        <span>{getTicketBuildingLabel(ticket.resourceId)}</span>
+                        <span>Floor {ticket.userId}</span>
+                        <span>
+                          Hall/Lab{" "}
+                          {ticket.assignedTechnicianId
+                            ? ticket.assignedTechnicianId
+                            : "Not Provided"}
+                        </span>
+                        <span>{ticket.createdDate.replace("T", " ")}</span>
+                      </div>
+                      <div className="ticket-card-actions">
+                        <button
+                          type="button"
+                          className="tiny-btn"
+                          onClick={() => handleStartTicketEdit(ticket)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="tiny-btn danger"
+                          onClick={() => handleDeleteTicket(ticket.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </article>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
   if (currentDashboard === "ticket") {
     return (
       <main className="dashboard-shell">
@@ -822,16 +997,16 @@ function App() {
 
           <section className="metrics-row">
             <article className="metric-card">
-              <span>Total Tickets</span>
-              <strong>{tickets.length}</strong>
+              <span>My Tickets</span>
+              <strong>{myTicketHistory.length}</strong>
             </article>
             <article className="metric-card">
               <span>Open</span>
-              <strong>{ticketStatusCount.OPEN || 0}</strong>
+              <strong>{myTicketStatusCount.OPEN || 0}</strong>
             </article>
             <article className="metric-card">
               <span>In Progress</span>
-              <strong>{ticketStatusCount.IN_PROGRESS || 0}</strong>
+              <strong>{myTicketStatusCount.IN_PROGRESS || 0}</strong>
             </article>
           </section>
 
@@ -841,7 +1016,19 @@ function App() {
           <section className="workspace">
             <div className="workspace-grid two-up">
               <form className="glass-panel" onSubmit={handleCreateTicket}>
-                <h2>Create Ticket</h2>
+                <div className="panel-header-actions">
+                  <h2>{editingTicketId ? "Update Ticket" : "Create Ticket"}</h2>
+                  <button
+                    type="button"
+                    className="tiny-btn"
+                    onClick={() => {
+                      clearMessages();
+                      setCurrentDashboard("ticket-history");
+                    }}
+                  >
+                    My Ticket History
+                  </button>
+                </div>
                 <div className="ticket-field-grid">
                   <label>
                     Title
@@ -1007,6 +1194,7 @@ function App() {
                       type="file"
                       multiple
                       accept="image/*"
+                      disabled={Boolean(editingTicketId)}
                       onChange={(event) =>
                         setTicketForm((current) => ({
                           ...current,
@@ -1015,85 +1203,27 @@ function App() {
                       }
                     />
                     <small className="field-hint">
-                      Upload one or more image files directly from your device.
+                      {editingTicketId
+                        ? "Existing images stay attached while editing. Add new images by creating a new ticket."
+                        : "Upload one or more image files directly from your device."}
                     </small>
                   </label>
                 </div>
-                <button type="submit">Submit Ticket</button>
-              </form>
-
-              <article className="glass-panel">
-                <h2>Recent Tickets</h2>
-                <p className="summary-note">
-                  New tickets are saved to the database immediately and listed here in
-                  reverse chronological order.
-                </p>
-
-                <div className="ticket-status-strip">
-                  <span className="ticket-pill open">Open: {ticketStatusCount.OPEN || 0}</span>
-                  <span className="ticket-pill progress">
-                    In Progress: {ticketStatusCount.IN_PROGRESS || 0}
-                  </span>
-                  <span className="ticket-pill resolved">
-                    Resolved: {ticketStatusCount.RESOLVED || 0}
-                  </span>
-                  <span className="ticket-pill closed">
-                    Closed: {ticketStatusCount.CLOSED || 0}
-                  </span>
+                <div className="ticket-form-actions">
+                  <button type="submit">
+                    {editingTicketId ? "Update Ticket" : "Submit Ticket"}
+                  </button>
+                  {editingTicketId && (
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      onClick={handleCancelTicketEdit}
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
                 </div>
-
-                {tickets.length === 0 ? (
-                  <p className="empty">No tickets submitted yet.</p>
-                ) : (
-                  <div className="ticket-list">
-                    {tickets.map((ticket) => (
-                      <article key={ticket.id} className="ticket-card">
-                        <div className="ticket-card-head">
-                          <h3>{ticket.title}</h3>
-                          <span className={`ticket-pill ${getTicketStatusTone(ticket.status)}`}>
-                            {formatLabel(ticket.status)}
-                          </span>
-                        </div>
-                        <p>{ticket.description}</p>
-                        <div className="ticket-meta">
-                          <span>{formatLabel(ticket.category)}</span>
-                          <span>{formatLabel(ticket.priority)} Priority</span>
-                          <span>{getTicketBuildingLabel(ticket.resourceId)}</span>
-                          <span>Floor {ticket.userId}</span>
-                          <span>
-                            Hall/Lab{" "}
-                            {ticket.assignedTechnicianId
-                              ? ticket.assignedTechnicianId
-                              : "Not Provided"}
-                          </span>
-                          <span>{ticket.createdDate.replace("T", " ")}</span>
-                        </div>
-                        <ul className="ticket-images">
-                          {ticket.imageUrls.length === 0 ? (
-                            <li>No image URLs attached.</li>
-                          ) : (
-                            ticket.imageUrls.map((url, index) => (
-                              <li key={`${ticket.id}-${index}`}>
-                                <a
-                                  href={
-                                    url.startsWith("/uploads/")
-                                      ? `http://localhost:8080${url}`
-                                      : url
-                                  }
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  {url.split("/").pop()}
-                                </a>
-                              </li>
-                            ))
-                          )}
-                        </ul>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </article>
+              </form>
             </div>
           </section>
         </div>
