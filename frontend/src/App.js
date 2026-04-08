@@ -225,7 +225,7 @@ function App() {
   );
 
   const selectedBuildingStats = useMemo(() => {
-    const roomCount = selectedBuildingRooms.length;      
+    const roomCount = selectedBuildingRooms.length;
     return {
       roomCount,
       activeCount: selectedBuildingRooms.filter((room) => room.status === "ACTIVE").length,
@@ -275,7 +275,7 @@ function App() {
     () => bookRoomSelectedBuilding?.floors || [],
     [bookRoomSelectedBuilding]
   );
-  
+
   const bookRoomSelectedFloor = useMemo(
     () => bookRoomFloors.find((floor) => String(floor.id) === String(bookRoomSelectedFloorId)),
     [bookRoomFloors, bookRoomSelectedFloorId]
@@ -382,11 +382,11 @@ function App() {
         current.map((building) =>
           String(building.id) === floorForm.buildingId
             ? {
-                ...building,
-                floors: [...building.floors, newFloor].sort(
-                  (a, b) => a.floorNumber - b.floorNumber
-                ),
-              }
+              ...building,
+              floors: [...building.floors, newFloor].sort(
+                (a, b) => a.floorNumber - b.floorNumber
+              ),
+            }
             : building
         )
       );
@@ -1387,9 +1387,8 @@ function App() {
             <button
               key={action.id}
               type="button"
-              className={`action-button ${action.accent} ${
-                activeSection === action.id ? "active" : ""
-              }`}
+              className={`action-button ${action.accent} ${activeSection === action.id ? "active" : ""
+                }`}
               onClick={() => setActiveSection(action.id)}
             >
               <span>{action.title}</span>
@@ -1696,11 +1695,10 @@ function App() {
                       {buildings.map((building) => (
                         <li
                           key={building.id}
-                          className={`map-card ${
-                            String(selectedBuildingId) === String(building.id)
+                          className={`map-card ${String(selectedBuildingId) === String(building.id)
                               ? "selected"
                               : ""
-                          }`}
+                            }`}
                           onClick={() => setSelectedBuildingId(building.id)}
                         >
                           <div className="map-card-head">
