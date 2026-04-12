@@ -20,7 +20,7 @@ import java.util.List;
  * REST Controller for booking management
  */
 @RestController
-@RequestMapping("/api/bookings")
+@RequestMapping("/api/legacy/bookings")
 public class B_BookingController {
     
     @Autowired

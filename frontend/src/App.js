@@ -11,15 +11,11 @@ import { formatLabel, getRoomQuickNote, withSeconds } from "./A_helpers";
 import APortalView from "./A_PortalView";
 import ABookRoomView from "./B_BookRoomView";
 import ABlankView from "./A_BlankView";
-<<<<<<< HEAD
-import B_BookingFormView from "./B_BookingFormView";
-=======
 import ALoginView from "./L_LoginView";
 import ARegisterView from "./L_RegisterView";
 import AMaintenanceView from "./M_MaintenanceView";
 import AAdminDashboardView from "./A_AdminDashboardView";
 import TTicketView from "./T_TicketView";
->>>>>>> main
 import {
   addFloor,
   approveBooking,
@@ -1354,13 +1350,6 @@ function App() {
   // New Booking Form Dashboard
   if (currentDashboard === "book") {
     return (
-<<<<<<< HEAD
-      <B_BookingFormView
-        onBack={() => {
-          clearMessages();
-          setCurrentDashboard("portal");
-        }}
-=======
       <ABookRoomView
         clearMessages={clearMessages}
         setCurrentDashboard={setCurrentDashboard}
@@ -1391,7 +1380,6 @@ function App() {
         rooms={rooms}
         bookNotifications={bookNotifications}
         clearBookNotifications={clearBookNotifications}
->>>>>>> main
       />
     );
   }
@@ -1924,7 +1912,9 @@ function App() {
       handleAdminApprove={handleAdminApprove}
       handleAdminReject={handleAdminReject}
     />
-    );
+  );
+
+  /*
     <main className="dashboard-shell">
       <div className="abstract-bg" />
       <div className="dashboard-wrap">
@@ -2755,6 +2745,7 @@ function App() {
         )}
       </div>
     </main>
+  */
 }
 
 export default App;

@@ -41,16 +41,16 @@ public interface B_BookingRepository extends JpaRepository<B_Booking, Long> {
     /**
      * Find all bookings for a room that are not cancelled
      */
-    @Query("SELECT b FROM B_Booking b WHERE b.room.id = :roomId AND b.status != 'CANCELLED'")
+    @Query("SELECT b FROM B_Booking b WHERE b.roomId = :roomId AND b.status <> com.smartcampus.operations_hubdemo.model.B_BookingStatus.CANCELLED")
     List<B_Booking> findActiveBookingsByRoom(@Param("roomId") Long roomId);
     
     /**
      * Check for overlapping bookings
      */
     @Query("SELECT COUNT(b) > 0 FROM B_Booking b " +
-           "WHERE b.room.id = :roomId " +
+           "WHERE b.roomId = :roomId " +
            "AND b.bookingDate = :bookingDate " +
-           "AND b.status IN ('PENDING', 'APPROVED') " +
+           "AND b.status IN (com.smartcampus.operations_hubdemo.model.B_BookingStatus.PENDING, com.smartcampus.operations_hubdemo.model.B_BookingStatus.APPROVED) " +
            "AND NOT (b.endTime <= :startTime OR b.startTime >= :endTime)")
     boolean existsConflictingBooking(@Param("roomId") Long roomId,
                                      @Param("bookingDate") LocalDate bookingDate,
