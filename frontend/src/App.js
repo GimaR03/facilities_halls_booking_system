@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
+import LLoginView from "./L_LoginView";
+import LRegisterView from "./L_RegisterView";
 import {
   addFloor,
   createBuilding,
@@ -78,6 +80,60 @@ const portalActions = [
   },
 ];
 
+const AUTH_USERS_STORAGE_KEY = "smartCampusAuthUsers";
+const DEFAULT_AUTH_USERS = [
+  {
+    fullName: "Campus Super Admin",
+    email: "cadmin@gmail.com",
+    phoneNumber: "0710000001",
+    idNumber: "ADMIN001",
+    dateOfBirth: "1985-01-15",
+    affiliation: "Administrative Staff",
+    department: "Campus Administration",
+    password: "cadmin123",
+    role: "ADMIN",
+    userId: 1,
+  },
+  {
+    fullName: "Campus Admin",
+    email: "admin@gmail.com",
+    phoneNumber: "0710000002",
+    idNumber: "ADMIN002",
+    dateOfBirth: "1988-06-20",
+    affiliation: "Administrative Staff",
+    department: "Operations",
+    password: "admin123",
+    role: "ADMIN",
+    userId: 2,
+  },
+  {
+    fullName: "Maintenance Staff",
+    email: "maintance@gmail.com",
+    phoneNumber: "0710000003",
+    idNumber: "MAIN001",
+    dateOfBirth: "1990-03-10",
+    affiliation: "Maintenance Team",
+    department: "Facilities Maintenance",
+    password: "maint123",
+    role: "MAINTENANCE",
+    userId: 3,
+  },
+];
+
+function getEmptyRegisterForm() {
+  return {
+    fullName: "",
+    email: "",
+    phoneNumber: "",
+    idNumber: "",
+    dateOfBirth: "",
+    affiliation: "",
+    department: "",
+    password: "",
+    confirmPassword: "",
+  };
+}
+
 function App() {
   const [buildings, setBuildings] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -88,6 +144,9 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [authUsers, setAuthUsers] = useState([]);
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [registerForm, setRegisterForm] = useState(() => getEmptyRegisterForm());
 
   const [buildingForm, setBuildingForm] = useState({
     buildingNo: "",
@@ -116,6 +175,35 @@ function App() {
 
   useEffect(() => {
     loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    const storedUsers = window.localStorage.getItem(AUTH_USERS_STORAGE_KEY);
+
+    if (!storedUsers) {
+      setAuthUsers(DEFAULT_AUTH_USERS);
+      window.localStorage.setItem(
+        AUTH_USERS_STORAGE_KEY,
+        JSON.stringify(DEFAULT_AUTH_USERS)
+      );
+      return;
+    }
+
+    try {
+      const parsedUsers = JSON.parse(storedUsers);
+      if (Array.isArray(parsedUsers) && parsedUsers.length > 0) {
+        setAuthUsers(parsedUsers);
+        return;
+      }
+    } catch (error) {
+      // Fall back to seeded users if local storage cannot be parsed.
+    }
+
+    setAuthUsers(DEFAULT_AUTH_USERS);
+    window.localStorage.setItem(
+      AUTH_USERS_STORAGE_KEY,
+      JSON.stringify(DEFAULT_AUTH_USERS)
+    );
   }, []);
 
   const selectedRoomBuilding = useMemo(
@@ -371,6 +459,16 @@ function App() {
     setSuccessMessage("");
   }
 
+  function routeUserByRole(user) {
+    if (user.role === "ADMIN") {
+      setCurrentDashboard("admin");
+      setActiveSection("manage-buildings");
+      return;
+    }
+
+    setCurrentDashboard("portal");
+  }
+
   function handlePortalAction(actionId) {
     clearMessages();
 
@@ -380,9 +478,143 @@ function App() {
       return;
     }
 
+    if (actionId === "login") {
+      setCurrentDashboard("login");
+      return;
+    }
+
     const selectedAction = portalActions.find((action) => action.id === actionId);
     setBlankPageTitle(selectedAction?.title || "Page");
     setCurrentDashboard("blank");
+  }
+
+  function handleLoginSubmit(event) {
+    event.preventDefault();
+    clearMessages();
+
+    const email = loginForm.email.trim().toLowerCase();
+    const password = loginForm.password;
+    const foundUser = authUsers.find(
+      (user) => user.email.toLowerCase() === email && user.password === password
+    );
+
+    if (!foundUser) {
+      setErrorMessage("Invalid email or password.");
+      return;
+    }
+
+    setLoginForm({ email: "", password: "" });
+    setSuccessMessage(`Welcome ${foundUser.fullName}.`);
+    routeUserByRole(foundUser);
+  }
+
+  function handleRegisterSubmit(event) {
+    event.preventDefault();
+    clearMessages();
+
+    const fullName = registerForm.fullName.trim();
+    const email = registerForm.email.trim().toLowerCase();
+    const phoneNumber = registerForm.phoneNumber.trim();
+    const idNumber = registerForm.idNumber.trim().toUpperCase();
+    const dateOfBirth = registerForm.dateOfBirth;
+    const affiliation = registerForm.affiliation.trim();
+    const department = registerForm.department.trim();
+    const password = registerForm.password;
+    const confirmPassword = registerForm.confirmPassword;
+    const phonePattern = /^\d{10}$/;
+    const idPattern = /^[A-Z0-9]{6,15}$/;
+    const parsedDob = new Date(dateOfBirth);
+    const isDobValid =
+      Boolean(dateOfBirth) &&
+      !Number.isNaN(parsedDob.getTime()) &&
+      dateOfBirth < new Date().toISOString().split("T")[0];
+
+    if (
+      !fullName ||
+      !email ||
+      !phoneNumber ||
+      !idNumber ||
+      !dateOfBirth ||
+      !affiliation ||
+      !department ||
+      !password
+    ) {
+      setErrorMessage("All register fields are required.");
+      return;
+    }
+
+    if (!email.includes("@") || !email.includes(".")) {
+      setErrorMessage("Enter a valid email address.");
+      return;
+    }
+
+    if (!phonePattern.test(phoneNumber)) {
+      setErrorMessage("Phone number must contain exactly 10 digits.");
+      return;
+    }
+
+    if (!idPattern.test(idNumber)) {
+      setErrorMessage("ID number must contain 6 to 15 letters or numbers.");
+      return;
+    }
+
+    if (!isDobValid) {
+      setErrorMessage("Date of birth must be a valid past date.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMessage("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      return;
+    }
+
+    const emailExists = authUsers.some((user) => user.email.toLowerCase() === email);
+    if (emailExists) {
+      setErrorMessage("Email already registered. Please login.");
+      return;
+    }
+
+    const phoneExists = authUsers.some(
+      (user) => (user.phoneNumber || "").trim() === phoneNumber
+    );
+    if (phoneExists) {
+      setErrorMessage("Phone number already registered. Please use another one.");
+      return;
+    }
+
+    const idExists = authUsers.some(
+      (user) => (user.idNumber || "").trim().toUpperCase() === idNumber
+    );
+    if (idExists) {
+      setErrorMessage("ID number already registered. Please use another one.");
+      return;
+    }
+
+    const nextUser = {
+      fullName,
+      email,
+      phoneNumber,
+      idNumber,
+      dateOfBirth,
+      affiliation,
+      department,
+      password,
+      role: email === "maintance@gmail.com" ? "MAINTENANCE" : "USER",
+      userId: authUsers.length + 1,
+    };
+    const nextUsers = [...authUsers, nextUser];
+
+    setAuthUsers(nextUsers);
+    window.localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(nextUsers));
+    setRegisterForm(getEmptyRegisterForm());
+    setLoginForm({ email, password: "" });
+    setSuccessMessage("Registration successful. Please login.");
+    setCurrentDashboard("login");
   }
 
   function handleRoomBuildingChange(buildingId) {
@@ -703,6 +935,34 @@ function App() {
           </header>
         </div>
       </main>
+    );
+  }
+
+  if (currentDashboard === "login") {
+    return (
+      <LLoginView
+        clearMessages={clearMessages}
+        setCurrentDashboard={setCurrentDashboard}
+        loginForm={loginForm}
+        setLoginForm={setLoginForm}
+        handleLoginSubmit={handleLoginSubmit}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+      />
+    );
+  }
+
+  if (currentDashboard === "register") {
+    return (
+      <LRegisterView
+        clearMessages={clearMessages}
+        setCurrentDashboard={setCurrentDashboard}
+        registerForm={registerForm}
+        setRegisterForm={setRegisterForm}
+        handleRegisterSubmit={handleRegisterSubmit}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+      />
     );
   }
 
