@@ -8,11 +8,11 @@ export default function APortalView({
       <div className="abstract-bg" />
       <div className="dashboard-wrap">
         <header className="hero-banner portal-hero">
-          <span className="hero-tag">Smart Campus Access</span>
+          <span className="hero-tag">✦ Smart Campus Access</span>
           <h1>Smart Campus Portal</h1>
           <p>
-            Choose an action to continue. Use Admin to open your created admin page,
-            or jump directly to booking and ticket sections.
+            Welcome! Select an action below to get started. Book rooms, submit
+            support tickets, or access the admin management panel.
           </p>
         </header>
 
@@ -24,7 +24,8 @@ export default function APortalView({
               className={`action-button ${action.accent}`}
               onClick={() => handlePortalAction(action.id)}
             >
-              <span>{action.title}</span>
+              <span className="action-icon">{action.icon}</span>
+              <span className="action-title">{action.title}</span>
               <small>{action.subtitle}</small>
             </button>
           ))}

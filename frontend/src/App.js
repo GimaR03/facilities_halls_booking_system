@@ -103,6 +103,18 @@ function getCurrentDateTimeValue() {
   return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
 }
 
+function formatFileSize(bytes) {
+  if (!bytes) {
+    return "0 KB";
+  }
+
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 function getEmptyTicketForm() {
   return {
     title: "",
@@ -308,6 +320,29 @@ function App() {
       ),
     [myTicketHistory]
   );
+  const selectedTicketImages = useMemo(() => Array.from(ticketForm.images || []), [ticketForm.images]);
+  const selectedTicketImageTotal = useMemo(
+    () => selectedTicketImages.reduce((sum, file) => sum + file.size, 0),
+    [selectedTicketImages]
+  );
+  const ticketLocationSummary = useMemo(() => {
+    if (!selectedTicketBuilding) {
+      return "Choose a building to continue";
+    }
+
+    if (!ticketForm.userId) {
+      return `${selectedTicketBuilding.label} selected`;
+    }
+
+    const roomLabel = ticketForm.assignedTechnicianId?.trim();
+    return `${selectedTicketBuilding.label}, Floor ${ticketForm.userId}${
+      roomLabel ? `, ${roomLabel}` : ""
+    }`;
+  }, [
+    selectedTicketBuilding,
+    ticketForm.assignedTechnicianId,
+    ticketForm.userId,
+  ]);
 
   const bookNotifications = useMemo(
     () => systemNotifications.filter((item) => item.target === "BOOK"),
@@ -362,7 +397,7 @@ function App() {
   );
 
   const selectedBuildingStats = useMemo(() => {
-    const roomCount = selectedBuildingRooms.length;      
+    const roomCount = selectedBuildingRooms.length;
     return {
       roomCount,
       activeCount: selectedBuildingRooms.filter((room) => room.status === "ACTIVE").length,
@@ -412,7 +447,7 @@ function App() {
     () => bookRoomSelectedBuilding?.floors || [],
     [bookRoomSelectedBuilding]
   );
-  
+
   const bookRoomSelectedFloor = useMemo(
     () => bookRoomFloors.find((floor) => String(floor.id) === String(bookRoomSelectedFloorId)),
     [bookRoomFloors, bookRoomSelectedFloorId]
@@ -553,7 +588,7 @@ function App() {
                       .map((item) => (item.id === editingFloorId ? savedFloor : item))
                       .sort((a, b) => a.floorNumber - b.floorNumber)
                   : [...building.floors, savedFloor].sort((a, b) => a.floorNumber - b.floorNumber),
-              }
+            }
             : building
         )
       );
@@ -1553,7 +1588,7 @@ function App() {
       <main className="dashboard-shell">
         <div className="abstract-bg" />
         <div className="dashboard-wrap">
-          <header className="hero-banner portal-hero">
+          <header className="hero-banner portal-hero ticket-hero">
             <div className="hero-head-row">
               <span className="hero-tag">Smart Campus Access</span>
               <button
@@ -1564,11 +1599,11 @@ function App() {
                   setCurrentDashboard("ticket");
                 }}
               >
-                Back To Ticket Page
+                Back To Ticket Form
               </button>
             </div>
             <h1>My Ticket History</h1>
-            <p>View, update, or delete your ticket history from this page.</p>
+            <p>Track your submitted issues, review details quickly, and reopen the form when a ticket needs changes.</p>
           </header>
 
           <section className="metrics-row">
@@ -1591,15 +1626,33 @@ function App() {
 
           <section className="workspace">
             <article className="glass-panel ticket-history-panel">
-              <div className="panel-header-actions">
-                <h2>My Ticket History</h2>
+              <div className="ticket-history-header">
+                <div>
+                  <p className="panel-kicker">Recent Requests</p>
+                  <h2>My Ticket History</h2>
+                </div>
                 <small className="field-hint">
                   Tickets created from this browser can be updated or deleted here.
                 </small>
               </div>
+              <div className="ticket-status-strip">
+                <span className="ticket-pill open">Open {myTicketStatusCount.OPEN || 0}</span>
+                <span className="ticket-pill progress">
+                  In Progress {myTicketStatusCount.IN_PROGRESS || 0}
+                </span>
+                <span className="ticket-pill resolved">
+                  Resolved {myTicketStatusCount.RESOLVED || 0}
+                </span>
+                <span className="ticket-pill closed">Closed {myTicketStatusCount.CLOSED || 0}</span>
+              </div>
 
               {myTicketHistory.length === 0 ? (
-                <p className="empty">No personal ticket history found yet.</p>
+                <div className="ticket-history-empty">
+                  <p className="empty">No ticket history yet.</p>
+                  <p className="summary-note">
+                    Submit your first support request and it will appear here with its status and location details.
+                  </p>
+                </div>
               ) : (
                 <div className="ticket-list">
                   {myTicketHistory.map((ticket) => (
@@ -1611,20 +1664,36 @@ function App() {
                         </span>
                       </div>
                       <p>{ticket.description}</p>
-                      <div className="ticket-meta">
-                        <span>{formatLabel(ticket.category)}</span>
-                        <span>{formatLabel(ticket.priority)} Priority</span>
-                        <span>{getTicketBuildingLabel(ticket.resourceId)}</span>
-                        <span>Floor {ticket.userId}</span>
-                        <span>
-                          Hall/Lab{" "}
-                          {ticket.assignedTechnicianId
-                            ? ticket.assignedTechnicianId
-                            : "Not Provided"}
-                        </span>
-                        <span>{ticket.createdDate.replace("T", " ")}</span>
+                      <div className="ticket-meta-grid">
+                        <div className="ticket-meta-item">
+                          <span>Category</span>
+                          <strong>{formatLabel(ticket.category)}</strong>
+                        </div>
+                        <div className="ticket-meta-item">
+                          <span>Priority</span>
+                          <strong>{formatLabel(ticket.priority)}</strong>
+                        </div>
+                        <div className="ticket-meta-item">
+                          <span>Location</span>
+                          <strong>
+                            {getTicketBuildingLabel(ticket.resourceId)}, Floor {ticket.userId}
+                          </strong>
+                        </div>
+                        <div className="ticket-meta-item">
+                          <span>Room / Hall / Lab</span>
+                          <strong>{ticket.assignedTechnicianId || "Not provided"}</strong>
+                        </div>
+                        <div className="ticket-meta-item">
+                          <span>Reported</span>
+                          <strong>{ticket.createdDate.replace("T", " ")}</strong>
+                        </div>
+                        <div className="ticket-meta-item">
+                          <span>Attachments</span>
+                          <strong>{ticket.imageUrls?.length || 0}</strong>
+                        </div>
                       </div>
-                      <div className="ticket-card-actions">
+                      <div className="ticket-card-footer">
+                        <div className="ticket-card-actions">
                         <button
                           type="button"
                           className="tiny-btn"
@@ -1639,6 +1708,7 @@ function App() {
                         >
                           Delete
                         </button>
+                        </div>
                       </div>
                     </article>
                   ))}
@@ -1681,24 +1751,35 @@ function App() {
       <main className="dashboard-shell">
         <div className="abstract-bg" />
         <div className="dashboard-wrap">
-          <header className="hero-banner portal-hero">
+          <header className="hero-banner portal-hero ticket-hero">
             <div className="hero-head-row">
               <span className="hero-tag">Smart Campus Access</span>
-              <button
-                type="button"
-                className="tiny-btn hero-back"
-                onClick={() => {
-                  clearMessages();
-                  setCurrentDashboard("portal");
-                }}
-              >
-                Back To Portal
-              </button>
+              <div className="hero-actions">
+                <button
+                  type="button"
+                  className="secondary-btn compact-btn hero-history-btn"
+                  onClick={() => {
+                    clearMessages();
+                    setCurrentDashboard("ticket-history");
+                  }}
+                >
+                  My Ticket History
+                </button>
+                <button
+                  type="button"
+                  className="secondary-btn compact-btn hero-back"
+                  onClick={() => {
+                    clearMessages();
+                    setCurrentDashboard("portal");
+                  }}
+                >
+                  Back To Portal
+                </button>
+              </div>
             </div>
-            <h1>Ticket Page</h1>
+            <h1>Support Ticket Desk</h1>
             <p>
-              Submit a campus support ticket with issue details, priority, related
-              resource, technician assignment, and image references.
+              Report a maintenance or technical issue with the exact location, clear details, and optional photo evidence.
             </p>
           </header>
 
@@ -1721,13 +1802,16 @@ function App() {
           {successMessage && <p className="message success">{successMessage}</p>}
 
           <section className="workspace">
-            <div className="workspace-grid two-up">
-              <form className="glass-panel" onSubmit={handleCreateTicket}>
+            <div className="workspace-grid two-up ticket-page-grid">
+              <form className="glass-panel ticket-form-shell" onSubmit={handleCreateTicket}>
                 <div className="panel-header-actions">
-                  <h2>{editingTicketId ? "Update Ticket" : "Create Ticket"}</h2>
+                  <div>
+                    <p className="panel-kicker">Support Request</p>
+                    <h2>{editingTicketId ? "Update Ticket" : "Create a New Ticket"}</h2>
+                  </div>
                   <button
                     type="button"
-                    className="tiny-btn"
+                    className="secondary-btn compact-btn"
                     onClick={() => {
                       clearMessages();
                       setCurrentDashboard("ticket-history");
@@ -1736,168 +1820,232 @@ function App() {
                     My Ticket History
                   </button>
                 </div>
-                <div className="ticket-field-grid">
-                  <label>
-                    Title
+                <p className="summary-note ticket-intro">
+                  Fill in the problem once, confirm the exact location, and attach evidence only when it helps the support team diagnose the issue.
+                </p>
+                <div className="ticket-highlight-strip">
+                  <article className="ticket-highlight-card">
+                    <span>Current priority</span>
+                    <strong>{formatLabel(ticketForm.priority)}</strong>
+                  </article>
+                  <article className="ticket-highlight-card">
+                    <span>Issue type</span>
+                    <strong>{formatLabel(ticketForm.category)}</strong>
+                  </article>
+                  <article className="ticket-highlight-card wide">
+                    <span>Location summary</span>
+                    <strong>{ticketLocationSummary}</strong>
+                  </article>
+                </div>
+
+                <section className="ticket-form-section">
+                  <div className="ticket-section-head">
+                    <div>
+                      <h3>1. Issue details</h3>
+                      <p>Start with the problem itself so the support team can understand it immediately.</p>
+                    </div>
+                  </div>
+                  <div className="ticket-field-grid">
+                    <label className="field-card">
+                      Short title
+                      <input
+                        required
+                        value={ticketForm.title}
+                        onChange={(event) =>
+                          setTicketForm((current) => ({
+                            ...current,
+                            title: event.target.value,
+                          }))
+                        }
+                        placeholder="Projector in LH-101 is not working"
+                      />
+                    </label>
+                    <label className="field-card">
+                      Category
+                      <select
+                        value={ticketForm.category}
+                        onChange={(event) =>
+                          setTicketForm((current) => ({
+                            ...current,
+                            category: event.target.value,
+                          }))
+                        }
+                      >
+                        {ticketCategories.map((category) => (
+                          <option key={category} value={category}>
+                            {formatLabel(category)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field-card">
+                      Priority
+                      <select
+                        value={ticketForm.priority}
+                        onChange={(event) =>
+                          setTicketForm((current) => ({
+                            ...current,
+                            priority: event.target.value,
+                          }))
+                        }
+                      >
+                        {ticketPriorities.map((priority) => (
+                          <option key={priority} value={priority}>
+                            {formatLabel(priority)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field-card">
+                      Ticket status
+                      <select
+                        value={ticketForm.status}
+                        disabled={!editingTicketId}
+                        onChange={(event) =>
+                          setTicketForm((current) => ({
+                            ...current,
+                            status: event.target.value,
+                          }))
+                        }
+                      >
+                        {ticketStatuses.map((status) => (
+                          <option key={status} value={status}>
+                            {formatLabel(status)}
+                          </option>
+                        ))}
+                      </select>
+                      <small className="field-hint">
+                        {editingTicketId
+                          ? "Status can be changed while editing an existing ticket."
+                          : "New tickets start as Open automatically."}
+                      </small>
+                    </label>
+                    <label className="description-field field-card">
+                      Full description
+                      <textarea
+                        required
+                        rows="5"
+                        value={ticketForm.description}
+                        onChange={(event) =>
+                          setTicketForm((current) => ({
+                            ...current,
+                            description: event.target.value,
+                          }))
+                        }
+                        placeholder="Describe what is happening, when it started, and anything already tried."
+                      />
+                    </label>
+                  </div>
+                </section>
+
+                <section className="ticket-form-section">
+                  <div className="ticket-section-head">
+                    <div>
+                      <h3>2. Location</h3>
+                      <p>Pinpoint the exact place so maintenance staff do not need to guess.</p>
+                    </div>
+                  </div>
+                  <div className="ticket-field-grid">
+                    <label className="field-card">
+                      Building
+                      <select
+                        required
+                        value={ticketForm.resourceId}
+                        onChange={(event) =>
+                          setTicketForm((current) => ({
+                            ...current,
+                            resourceId: event.target.value,
+                            userId: "",
+                          }))
+                        }
+                      >
+                        <option value="">Select Building</option>
+                        {ticketBuildingOptions.map((building) => (
+                          <option key={building.value} value={building.value}>
+                            {building.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field-card">
+                      Floor
+                      <select
+                        required
+                        disabled={!selectedTicketBuilding}
+                        value={ticketForm.userId}
+                        onChange={(event) =>
+                          setTicketForm((current) => ({
+                            ...current,
+                            userId: event.target.value,
+                          }))
+                        }
+                      >
+                        <option value="">
+                          {selectedTicketBuilding ? "Select Floor" : "Select Building First"}
+                        </option>
+                        {ticketFloorOptions.map((floorNumber) => (
+                          <option key={floorNumber} value={floorNumber}>
+                            Floor {floorNumber}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field-card">
+                      Room / hall / lab
+                      <input
+                        type="text"
+                        value={ticketForm.assignedTechnicianId}
+                        onChange={(event) =>
+                          setTicketForm((current) => ({
+                            ...current,
+                            assignedTechnicianId: event.target.value,
+                          }))
+                        }
+                        placeholder="LH-101, Lab 2, Seminar Hall"
+                      />
+                      <small className="field-hint">
+                        Enter the room, lab, or hall number if you know it.
+                      </small>
+                    </label>
+                    <label className="field-card">
+                      Reported at
+                      <input
+                        required
+                        type="datetime-local"
+                        value={ticketForm.createdDate}
+                        onChange={(event) =>
+                          setTicketForm((current) => ({
+                            ...current,
+                            createdDate: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                  </div>
+                </section>
+
+                <section className="ticket-form-section">
+                  <div className="ticket-section-head">
+                    <div>
+                      <h3>3. Attachments</h3>
+                      <p>Add screenshots or photos only if they make the issue easier to verify.</p>
+                    </div>
+                  </div>
+                  <label className="description-field upload-field">
+                    <span className="upload-label-row">
+                      <span>
+                        Photo evidence
+                        <small className="field-hint">
+                          Add screenshots or photos that help explain the issue.
+                        </small>
+                      </span>
+                      <span className="upload-badge">
+                        {selectedTicketImages.length} file
+                        {selectedTicketImages.length === 1 ? "" : "s"}
+                      </span>
+                    </span>
                     <input
-                      required
-                      value={ticketForm.title}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          title: event.target.value,
-                        }))
-                      }
-                      placeholder="Projector not working"
-                    />
-                  </label>
-                  <label>
-                    Category
-                    <select
-                      value={ticketForm.category}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          category: event.target.value,
-                        }))
-                      }
-                    >
-                      {ticketCategories.map((category) => (
-                        <option key={category} value={category}>
-                          {formatLabel(category)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Priority
-                    <select
-                      value={ticketForm.priority}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          priority: event.target.value,
-                        }))
-                      }
-                    >
-                      {ticketPriorities.map((priority) => (
-                        <option key={priority} value={priority}>
-                          {formatLabel(priority)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Status
-                    <select
-                      value={ticketForm.status}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          status: event.target.value,
-                        }))
-                      }
-                    >
-                      {ticketStatuses.map((status) => (
-                        <option key={status} value={status}>
-                          {formatLabel(status)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Building
-                    <select
-                      required
-                      value={ticketForm.resourceId}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          resourceId: event.target.value,
-                          userId: "",
-                        }))
-                      }
-                    >
-                      <option value="">Select Building</option>
-                      {ticketBuildingOptions.map((building) => (
-                        <option key={building.value} value={building.value}>
-                          {building.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Floor Number
-                    <select
-                      required
-                      disabled={!selectedTicketBuilding}
-                      value={ticketForm.userId}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          userId: event.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">
-                        {selectedTicketBuilding ? "Select Floor" : "Select Building First"}
-                      </option>
-                      {ticketFloorOptions.map((floorNumber) => (
-                        <option key={floorNumber} value={floorNumber}>
-                          Floor {floorNumber}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Lecturer Hall or Lab Number
-                    <input
-                      type="text"
-                      value={ticketForm.assignedTechnicianId}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          assignedTechnicianId: event.target.value,
-                        }))
-                      }
-                      placeholder="LH-101 or Lab 2"
-                    />
-                    <small className="field-hint">
-                      Enter the hall or lab number manually.
-                    </small>
-                  </label>
-                  <label>
-                    Created Date
-                    <input
-                      required
-                      type="datetime-local"
-                      value={ticketForm.createdDate}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          createdDate: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="description-field">
-                    Description
-                    <textarea
-                      required
-                      rows="4"
-                      value={ticketForm.description}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          description: event.target.value,
-                        }))
-                      }
-                      placeholder="Explain the issue clearly so support staff can reproduce it."
-                    />
-                  </label>
-                  <label className="description-field">
-                    Ticket Images
-                    <input
+                      className="file-input"
                       type="file"
                       multiple
                       accept="image/*"
@@ -1909,15 +2057,29 @@ function App() {
                         }))
                       }
                     />
+                    {selectedTicketImages.length > 0 && (
+                      <div className="upload-file-list">
+                        {selectedTicketImages.map((file) => (
+                          <div key={`${file.name}-${file.size}`} className="upload-file-item">
+                            <span>{file.name}</span>
+                            <strong>{formatFileSize(file.size)}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="upload-meta-row">
+                      <span>Total selected: {formatFileSize(selectedTicketImageTotal)}</span>
+                      <span>Limit: 25MB per file, 50MB total</span>
+                    </div>
                     <small className="field-hint">
                       {editingTicketId
                         ? "Existing images stay attached while editing. Add new images by creating a new ticket."
                         : "Upload one or more image files directly from your device. Limit: 25MB per file, 50MB total."}
                     </small>
                   </label>
-                </div>
+                </section>
                 <div className="ticket-form-actions">
-                  <button type="submit">
+                  <button type="submit" className="primary-btn">
                     {editingTicketId ? "Update Ticket" : "Submit Ticket"}
                   </button>
                   {editingTicketId && (
@@ -1931,6 +2093,45 @@ function App() {
                   )}
                 </div>
               </form>
+              <aside className="glass-panel ticket-side-panel">
+                <div className="ticket-side-top">
+                  <p className="panel-kicker">Support Flow</p>
+                  <h2>Before you submit</h2>
+                  <p className="summary-note">
+                    Strong tickets are easy to route. Make the title specific, confirm the location, and include only the details support staff actually need.
+                  </p>
+                </div>
+                <div className="ticket-side-block">
+                  <h3>Quick checklist</h3>
+                  <ul className="ticket-checklist">
+                    <li>Name the broken item or issue directly in the title.</li>
+                    <li>Select the building and floor before entering the room or hall.</li>
+                    <li>Use urgent priority only when the issue blocks teaching or access.</li>
+                    <li>Add photos only when they provide evidence the team cannot infer from text.</li>
+                  </ul>
+                </div>
+                <div className="ticket-side-block">
+                  <h3>Current form snapshot</h3>
+                  <div className="ticket-side-stats">
+                    <div>
+                      <span>Priority</span>
+                      <strong>{formatLabel(ticketForm.priority)}</strong>
+                    </div>
+                    <div>
+                      <span>Category</span>
+                      <strong>{formatLabel(ticketForm.category)}</strong>
+                    </div>
+                    <div>
+                      <span>Location</span>
+                      <strong>{ticketLocationSummary}</strong>
+                    </div>
+                    <div>
+                      <span>Attachments</span>
+                      <strong>{selectedTicketImages.length}</strong>
+                    </div>
+                  </div>
+                </div>
+              </aside>
             </div>
           </section>
         </div>
@@ -2104,9 +2305,8 @@ function App() {
             <button
               key={action.id}
               type="button"
-              className={`action-button ${action.accent} ${
-                activeSection === action.id ? "active" : ""
-              }`}
+              className={`action-button ${action.accent} ${activeSection === action.id ? "active" : ""
+                }`}
               onClick={() => setActiveSection(action.id)}
             >
               <span>{action.title}</span>
@@ -2426,11 +2626,10 @@ function App() {
                       {buildings.map((building) => (
                         <li
                           key={building.id}
-                          className={`map-card ${
-                            String(selectedBuildingId) === String(building.id)
+                          className={`map-card ${String(selectedBuildingId) === String(building.id)
                               ? "selected"
                               : ""
-                          }`}
+                            }`}
                           onClick={() => setSelectedBuildingId(building.id)}
                         >
                           <div className="map-card-head">
