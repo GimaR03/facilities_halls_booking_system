@@ -16,6 +16,9 @@ public class AuthService {
 
     private static final String STAFF_EMAIL_SUFFIX = "@my.sliit.lk";
     private static final LocalDate DEFAULT_DATE_OF_BIRTH = LocalDate.of(2000, 1, 1);
+    private static final String RESERVED_ADMIN_HINT = "admin";
+    private static final String RESERVED_MAINTENANCE_HINT = "maintance";
+    private static final String RESERVED_MAINTENANCE_ALT_HINT = "maintenance";
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_MAINTENANCE = "MAINTENANCE";
     private static final String ROLE_USER = "USER";
@@ -38,6 +41,13 @@ public class AuthService {
 
         if (!isAllowedAffiliation(affiliation)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Affiliation must be Academic Staff or Administrative Staff");
+        }
+
+        if (isReservedStaffAccount(email)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Admin and maintenance accounts are managed by the system and cannot be registered manually."
+            );
         }
 
         if (campusUserRepository.existsByEmail(email)) {
@@ -90,15 +100,30 @@ public class AuthService {
         int atIndex = email.indexOf("@");
         String usernamePart = atIndex > 0 ? email.substring(0, atIndex).toLowerCase() : "";
 
-        if (usernamePart.contains("maintance") || usernamePart.contains("maintenance")) {
+        if (isMaintenanceAccount(usernamePart)) {
             return ROLE_MAINTENANCE;
         }
 
-        if (usernamePart.contains("admin")) {
+        if (isAdminAccount(usernamePart)) {
             return ROLE_ADMIN;
         }
 
         return ROLE_USER;
+    }
+
+    private boolean isReservedStaffAccount(String email) {
+        int atIndex = email.indexOf("@");
+        String usernamePart = atIndex > 0 ? email.substring(0, atIndex).toLowerCase() : "";
+        return isAdminAccount(usernamePart) || isMaintenanceAccount(usernamePart);
+    }
+
+    private boolean isAdminAccount(String usernamePart) {
+        return usernamePart.contains(RESERVED_ADMIN_HINT);
+    }
+
+    private boolean isMaintenanceAccount(String usernamePart) {
+        return usernamePart.contains(RESERVED_MAINTENANCE_HINT)
+                || usernamePart.contains(RESERVED_MAINTENANCE_ALT_HINT);
     }
 
     private boolean isAllowedAffiliation(String affiliation) {

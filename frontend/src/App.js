@@ -891,6 +891,13 @@ function App() {
       return;
     }
 
+    if (email.includes("admin") || email.includes("maintance") || email.includes("maintenance")) {
+      setErrorMessage(
+        "Admin and maintenance accounts are managed by the system and cannot be registered manually."
+      );
+      return;
+    }
+
     if (password.length < 6) {
       setErrorMessage("Password must be at least 6 characters.");
       return;
