@@ -15,6 +15,8 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Configuration
 @ConditionalOnProperty(name = "app.seed.enabled", havingValue = "true")
@@ -23,20 +25,8 @@ public class DataSeeder {
     @Bean
     CommandLineRunner seedCampusData(BuildingRepository buildingRepository, FloorRepository floorRepository, RoomRepository roomRepository) {
         return args -> {
-            if (buildingRepository.count() == 0) {
-                Building building1 = new Building("1", "Building 1");
-                for (int floor = 1; floor <= 7; floor++) {
-                    building1.addFloor(new Floor(floor, formatFloorLabel(floor)));
-                }
-
-                Building building2 = new Building("2", "Building 2");
-                for (int floor = 1; floor <= 13; floor++) {
-                    building2.addFloor(new Floor(floor, formatFloorLabel(floor)));
-                }
-
-                buildingRepository.save(building1);
-                buildingRepository.save(building2);
-            }
+            ensureBuildingWithFloors(buildingRepository, floorRepository, "1", "Building 1", 14);
+            ensureBuildingWithFloors(buildingRepository, floorRepository, "2", "Building 2", 14);
 
             if (roomRepository.count() > 0) {
                 return;
@@ -47,6 +37,31 @@ public class DataSeeder {
             buildingRepository.findByBuildingNo("2")
                     .ifPresent(building -> seedRoomsForBuilding(building, floorRepository, roomRepository, "B2"));
         };
+    }
+
+    private void ensureBuildingWithFloors(
+            BuildingRepository buildingRepository,
+            FloorRepository floorRepository,
+            String buildingNo,
+            String buildingName,
+            int floorCount
+    ) {
+        Building building = buildingRepository.findByBuildingNo(buildingNo)
+                .orElseGet(() -> buildingRepository.save(new Building(buildingNo, buildingName)));
+
+        Set<Integer> existingFloors = floorRepository.findByBuildingIdOrderByFloorNumberAsc(building.getId())
+                .stream()
+                .map(Floor::getFloorNumber)
+                .collect(Collectors.toSet());
+
+        for (int floor = 1; floor <= floorCount; floor++) {
+            if (existingFloors.contains(floor)) {
+                continue;
+            }
+            Floor newFloor = new Floor(floor, formatFloorLabel(floor));
+            newFloor.setBuilding(building);
+            floorRepository.save(newFloor);
+        }
     }
 
     private void seedRoomsForBuilding(
