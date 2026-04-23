@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public record RegisterRequest(
+public record GoogleLoginRequest(
         @Size(max = 120, message = "Full name must be 120 characters or less")
         String fullName,
 
@@ -16,10 +16,6 @@ public record RegisterRequest(
                 message = "Only @my.sliit.lk email addresses are allowed"
         )
         @Size(max = 120, message = "Email must be 120 characters or less")
-        String email,
-
-        @NotBlank(message = "Password is required")
-        @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
-        String password
+        String email
 ) {
 }

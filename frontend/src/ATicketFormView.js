@@ -24,6 +24,7 @@ export default function ATicketFormView({
   myTicketStatusCount,
   errorMessage,
   successMessage,
+  handleLogout,
 }) {
   return (
     <main className="dashboard-shell">
@@ -52,6 +53,13 @@ export default function ATicketFormView({
                 }}
               >
                 ← Back To Portal
+              </button>
+              <button
+                type="button"
+                className="secondary-btn compact-btn logout-btn"
+                onClick={handleLogout}
+              >
+                Logout
               </button>
             </div>
           </div>

@@ -17,16 +17,14 @@ const loginHighlights = [
 
 const demoUsers = [
   {
-    role: "Campus Super Admin",
-    email: "cadmin@gmail.com",
-  },
-  {
-    role: "Campus Admin",
-    email: "admin@gmail.com",
+    role: "Demo Admin",
+    email: "admin@my.sliit.lk",
+    password: "Admin@123",
   },
   {
     role: "Maintenance Staff",
-    email: "maintance@gmail.com",
+    email: "maintenance@my.sliit.lk",
+    password: "Maintenance@123",
   },
 ];
 
@@ -36,6 +34,7 @@ export default function ALoginView({
   loginForm,
   setLoginForm,
   handleLoginSubmit,
+  handleGoogleLogin,
   errorMessage,
   successMessage,
 }) {
@@ -85,6 +84,7 @@ export default function ALoginView({
                     <div key={user.email} className="demo-badge">
                       <span>{user.role}</span>
                       <strong>{user.email}</strong>
+                      <small>{user.password}</small>
                     </div>
                   ))}
                 </div>
@@ -111,8 +111,11 @@ export default function ALoginView({
                         email: event.target.value,
                       }))
                     }
-                    placeholder="e.g. admin@campus.com"
+                    placeholder="e.g. user@my.sliit.lk"
                   />
+                  <small className="auth-field-note">
+                    Only `@my.sliit.lk` accounts can access the system.
+                  </small>
                 </div>
 
                 <div className="input-group">
@@ -147,13 +150,20 @@ export default function ALoginView({
                   </button>
                   <button
                     type="button"
+                    className="secondary-btn portal-btn"
+                    onClick={handleGoogleLogin}
+                  >
+                    Continue With Google
+                  </button>
+                  <button
+                    type="button"
                     className="secondary-btn portal-btn-link"
                     onClick={() => {
                       clearMessages();
                       setCurrentDashboard("register");
                     }}
                   >
-                    Don't have an account? <strong>Register</strong>
+                    Don&apos;t have an account? <strong>Register</strong>
                   </button>
                 </div>
               </form>
@@ -161,18 +171,6 @@ export default function ALoginView({
           </div>
         </section>
 
-        <div className="portal-footer-actions">
-          <button
-            type="button"
-            className="tiny-btn"
-            onClick={() => {
-              clearMessages();
-              setCurrentDashboard("portal");
-            }}
-          >
-            ← Back to Public Portal
-          </button>
-        </div>
 
         {errorMessage && (
           <div className="toast-message error">
@@ -188,4 +186,3 @@ export default function ALoginView({
     </main>
   );
 }
-

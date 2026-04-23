@@ -12,6 +12,7 @@ export default function ATicketHistoryView({
   clearMessages,
   errorMessage,
   successMessage,
+  handleLogout,
 }) {
   return (
     <main className="dashboard-shell">
@@ -29,6 +30,13 @@ export default function ATicketHistoryView({
               }}
             >
               ← Back To Request Form
+            </button>
+            <button
+              type="button"
+              className="secondary-btn compact-btn logout-btn"
+              onClick={handleLogout}
+            >
+              Logout
             </button>
           </div>
           <h1>My Ticket History</h1>

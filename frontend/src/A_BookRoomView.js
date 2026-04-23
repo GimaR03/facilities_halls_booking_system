@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 export default function ABookRoomView({
   clearMessages,
   setCurrentDashboard,
+  handleLogout,
   buildings,
   bookRoomSelectedBuildingId,
   setBookRoomSelectedBuildingId,
@@ -154,6 +155,13 @@ export default function ABookRoomView({
                 onClick={() => setShowNotifications((current) => !current)}
               >
                 Notifications ({bookNotifications.length})
+              </button>
+              <button
+                type="button"
+                className="tiny-btn logout-btn"
+                onClick={handleLogout}
+              >
+                Logout
               </button>
               <button
                 type="button"

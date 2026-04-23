@@ -37,6 +37,13 @@ public class TicketService {
                 .toList();
     }
 
+    public List<TicketResponse> getTicketsByUserId(Long userId) {
+        return ticketRepository.findByUserId(userId).stream()
+                .sorted(Comparator.comparing(Ticket::getCreatedDate).reversed())
+                .map(this::toTicketResponse)
+                .toList();
+    }
+
     @Transactional
     public TicketResponse createTicket(CreateTicketRequest request, List<MultipartFile> images) {
         Ticket ticket = new Ticket();

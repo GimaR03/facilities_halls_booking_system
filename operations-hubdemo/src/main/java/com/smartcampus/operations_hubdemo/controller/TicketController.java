@@ -31,7 +31,10 @@ public class TicketController {
     }
 
     @GetMapping
-    public List<TicketResponse> getTickets() {
+    public List<TicketResponse> getTickets(@org.springframework.web.bind.annotation.RequestParam(required = false) Long userId) {
+        if (userId != null) {
+            return ticketService.getTicketsByUserId(userId);
+        }
         return ticketService.getTickets();
     }
 

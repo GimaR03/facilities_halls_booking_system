@@ -4,10 +4,12 @@ import { formatLabel } from "./A_helpers";
 export default function A_AdminDashboardView({
   clearMessages,
   setCurrentDashboard,
+  handleLogout,
   adminNotifications,
   showAdminNotifications,
   setShowAdminNotifications,
   clearAdminNotifications,
+  authUser,
   buildings,
   totalFloors,
   rooms,
@@ -57,6 +59,19 @@ export default function A_AdminDashboardView({
   adminBookings,
   handleAdminApprove,
   handleAdminReject,
+  createAdminForm,
+  setCreateAdminForm,
+  handleCreateAdmin,
+  admins,
+  loadAdmins,
+  maintenanceStaff,
+  loadMaintenanceStaff,
+  createMaintenanceForm,
+  setCreateMaintenanceForm,
+  handleCreateMaintenance,
+  allUsers,
+  loadAllUsers,
+  handleDeleteUser,
 }) {
   return (
     <main className="dashboard-shell">
@@ -73,22 +88,16 @@ export default function A_AdminDashboardView({
               >
                 Notification ({adminNotifications.length})
               </button>
-              <button
-                type="button"
-                className="tiny-btn hero-back"
-                onClick={() => {
-                  clearMessages();
-                  setCurrentDashboard("portal");
-                }}
-              >
-                Back To Portal
+              <button type="button" className="tiny-btn" onClick={handleLogout}>
+                Logout
               </button>
             </div>
           </div>
           <h1>Campus Command Dashboard</h1>
           <p>
-            Use action buttons to open Add Building and Add Floor forms, Book Room form,
-            Building and Floor Map, and Rooms Status.
+            Signed in as <strong>{authUser?.email || "admin@my.sliit.lk"}</strong>. Use
+            the admin workspace to manage campus resources, review bookings, and create
+            additional admin accounts.
           </p>
 
           {adminNotifications.length > 0 && (
@@ -159,6 +168,7 @@ export default function A_AdminDashboardView({
           </article>
         </section>
 
+
         <section className="action-grid">
           {dashboardActions.map((action) => (
             <button
@@ -182,6 +192,22 @@ export default function A_AdminDashboardView({
             <span>View Book Status</span>
             <small>Approve or reject booking requests</small>
           </button>
+          <button
+            type="button"
+            className={`action-button leaf ${activeSection === "admin-management" ? "active" : ""}`}
+            onClick={() => setActiveSection("admin-management")}
+          >
+            <span>Admin Management</span>
+            <small>View and create administrator accounts</small>
+          </button>
+          <button
+            type="button"
+            className={`action-button leaf ${activeSection === "user-management" ? "active" : ""}`}
+            onClick={() => setActiveSection("user-management")}
+          >
+            <span>User Directory</span>
+            <small>Manage all registered campus users</small>
+          </button>
         </section>
 
         {isLoading && <p className="loading-text">Loading campus data...</p>}
@@ -190,6 +216,218 @@ export default function A_AdminDashboardView({
 
         {!isLoading && (
           <section className="workspace">
+            {activeSection === "admin-management" && (
+              <div className="workspace-grid two-up staff-management-grid">
+                {/* Left Side: Admin Management */}
+                <div className="staff-column">
+                  <form className="glass-panel" onSubmit={handleCreateAdmin}>
+                    <div className="panel-header-actions">
+                      <h2>Add Admin Account</h2>
+                    </div>
+                    <label>
+                      Full Name
+                      <input
+                        value={createAdminForm.fullName}
+                        onChange={(event) =>
+                          setCreateAdminForm((current) => ({
+                            ...current,
+                            fullName: event.target.value,
+                          }))
+                        }
+                        placeholder="e.g. Faculty Admin"
+                      />
+                    </label>
+                    <label>
+                      Admin Email
+                      <input
+                        required
+                        type="email"
+                        value={createAdminForm.email}
+                        onChange={(event) =>
+                          setCreateAdminForm((current) => ({
+                            ...current,
+                            email: event.target.value,
+                          }))
+                        }
+                        placeholder="e.g. opslead@my.sliit.lk"
+                      />
+                    </label>
+                    <label>
+                      Password
+                      <input
+                        required
+                        type="password"
+                        value={createAdminForm.password}
+                        onChange={(event) =>
+                          setCreateAdminForm((current) => ({
+                            ...current,
+                            password: event.target.value,
+                          }))
+                        }
+                        placeholder="At least 6 characters"
+                      />
+                    </label>
+                    <button type="submit" className="teal-btn">Create Admin</button>
+                  </form>
+
+                  <article className="glass-panel" style={{ marginTop: "1rem" }}>
+                    <div className="panel-header-actions">
+                      <h3>System Admins</h3>
+                      <button type="button" className="tiny-btn" onClick={loadAdmins}>
+                        🔄
+                      </button>
+                    </div>
+                    {admins && admins.length > 0 ? (
+                      <ul className="ticket-images staff-list">
+                        {admins.map((admin) => (
+                          <li key={admin.id} className="staff-item">
+                            <strong>{admin.fullName}</strong>
+                            <span>{admin.email}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="empty">No additional admins.</p>
+                    )}
+                  </article>
+                </div>
+
+                {/* Right Side: Maintenance Management */}
+                <div className="staff-column">
+                  <form className="glass-panel" onSubmit={handleCreateMaintenance}>
+                    <div className="panel-header-actions">
+                      <h2>Add Maintenance Account</h2>
+                    </div>
+                    <label>
+                      Full Name
+                      <input
+                        value={createMaintenanceForm.fullName}
+                        onChange={(event) =>
+                          setCreateMaintenanceForm((current) => ({
+                            ...current,
+                            fullName: event.target.value,
+                          }))
+                        }
+                        placeholder="e.g. Technical Staff"
+                      />
+                    </label>
+                    <label>
+                      Staff Email
+                      <input
+                        required
+                        type="email"
+                        value={createMaintenanceForm.email}
+                        onChange={(event) =>
+                          setCreateMaintenanceForm((current) => ({
+                            ...current,
+                            email: event.target.value,
+                          }))
+                        }
+                        placeholder="e.g. maintenance@my.sliit.lk"
+                      />
+                    </label>
+                    <label>
+                      Password
+                      <input
+                        required
+                        type="password"
+                        value={createMaintenanceForm.password}
+                        onChange={(event) =>
+                          setCreateMaintenanceForm((current) => ({
+                            ...current,
+                            password: event.target.value,
+                          }))
+                        }
+                        placeholder="At least 6 characters"
+                      />
+                    </label>
+                    <button type="submit" className="sky-btn">Create Maintenance</button>
+                  </form>
+
+                  <article className="glass-panel" style={{ marginTop: "1rem" }}>
+                    <div className="panel-header-actions">
+                      <h3>Maintenance Staff</h3>
+                      <button type="button" className="tiny-btn" onClick={loadMaintenanceStaff}>
+                        🔄
+                      </button>
+                    </div>
+                    {maintenanceStaff && maintenanceStaff.length > 0 ? (
+                      <ul className="ticket-images staff-list">
+                        {maintenanceStaff.map((staff) => (
+                          <li key={staff.id} className="staff-item">
+                            <strong>{staff.fullName}</strong>
+                            <span>{staff.email}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="empty">No maintenance staff.</p>
+                    )}
+                  </article>
+                </div>
+              </div>
+            )}
+
+            {activeSection === "user-management" && (
+              <article className="glass-panel">
+                <div className="panel-header-actions">
+                  <h2>Campus User Directory</h2>
+                  <button type="button" className="tiny-btn" onClick={loadAllUsers}>
+                    🔄 Refresh Directory
+                  </button>
+                </div>
+                <p className="summary-note">
+                  Complete list of all registered accounts. Administrators can review details and remove accounts if necessary.
+                </p>
+
+                {allUsers && allUsers.length > 0 ? (
+                  <div className="table-wrap" style={{ marginTop: "1rem" }}>
+                    <table className="compact-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Full Name</th>
+                          <th>Email</th>
+                          <th>Role</th>
+                          <th>Phone</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allUsers
+                          .filter((user) => user.role === "USER")
+                          .map((user) => (
+                            <tr key={user.id}>
+                              <td>{user.id}</td>
+                              <td><strong>{user.fullName}</strong></td>
+                              <td>{user.email}</td>
+                              <td>
+                                <span className="status-badge">
+                                  {user.role}
+                                </span>
+                              </td>
+                              <td>{user.phoneNumber || "-"}</td>
+                              <td>
+                                <button 
+                                  type="button" 
+                                  className="tiny-btn danger"
+                                  onClick={() => handleDeleteUser(user.id)}
+                                  title="Delete User"
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="empty">No users found in the directory.</p>
+                )}
+              </article>
+            )}
+
             {activeSection === "manage-buildings" && (
               <div className="workspace-grid two-up">
                 <form className="glass-panel" onSubmit={handleCreateBuilding}>
