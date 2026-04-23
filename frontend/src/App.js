@@ -1578,7 +1578,6 @@ function App() {
         latestSubmittedTicket={latestSubmittedTicket}
         handleDownloadTicketPdf={handleDownloadTicketPdf}
       />
-      />
     );
   }
 
