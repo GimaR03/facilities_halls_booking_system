@@ -15,6 +15,7 @@ import java.time.LocalDate;
 public class AuthService {
 
     private static final String STAFF_EMAIL_SUFFIX = "@my.sliit.lk";
+    private static final LocalDate DEFAULT_DATE_OF_BIRTH = LocalDate.of(2000, 1, 1);
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_MAINTENANCE = "MAINTENANCE";
     private static final String ROLE_USER = "USER";
@@ -30,7 +31,6 @@ public class AuthService {
         String phoneNumber = request.phoneNumber().trim();
         String idNumber = request.idNumber().trim().toUpperCase();
         String affiliation = normalizeAffiliation(request.affiliation());
-        LocalDate dateOfBirth = request.dateOfBirth();
 
         if (!email.endsWith(STAFF_EMAIL_SUFFIX)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email must be in this format: username@my.sliit.lk");
@@ -38,10 +38,6 @@ public class AuthService {
 
         if (!isAllowedAffiliation(affiliation)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Affiliation must be Academic Staff or Administrative Staff");
-        }
-
-        if (!dateOfBirth.isBefore(LocalDate.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Date of birth must be in the past");
         }
 
         if (campusUserRepository.existsByEmail(email)) {
@@ -61,7 +57,7 @@ public class AuthService {
         user.setEmail(email);
         user.setPhoneNumber(phoneNumber);
         user.setIdNumber(idNumber);
-        user.setDateOfBirth(dateOfBirth);
+        user.setDateOfBirth(DEFAULT_DATE_OF_BIRTH);
         user.setAffiliation(affiliation);
         user.setDepartment(request.department().trim());
         user.setPassword(request.password());

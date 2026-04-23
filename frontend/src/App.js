@@ -81,7 +81,6 @@ function getEmptyRegisterForm() {
     email: "",
     phoneNumber: "",
     idNumber: "",
-    dateOfBirth: "",
     affiliation: "",
     department: "",
     password: "",
@@ -860,7 +859,6 @@ function App() {
     const email = registerForm.email.trim().toLowerCase();
     const phoneNumber = registerForm.phoneNumber.trim();
     const idNumber = registerForm.idNumber.trim().toUpperCase();
-    const dateOfBirth = registerForm.dateOfBirth;
     const affiliation = registerForm.affiliation.trim();
     const department = registerForm.department.trim();
     const password = registerForm.password;
@@ -869,18 +867,12 @@ function App() {
     const idPattern = /^[A-Z0-9]{6,15}$/;
     const sliitEmailPattern = /^[a-zA-Z0-9._%+-]+@my\.sliit\.lk$/;
     const allowedAffiliations = ["Academic Staff", "Administrative Staff"];
-    const parsedDob = new Date(dateOfBirth);
-    const isDobValid =
-      Boolean(dateOfBirth) &&
-      !Number.isNaN(parsedDob.getTime()) &&
-      dateOfBirth < new Date().toISOString().split("T")[0];
 
     if (
       !fullName ||
       !email ||
       !phoneNumber ||
       !idNumber ||
-      !dateOfBirth ||
       !affiliation ||
       !department ||
       !password
@@ -914,11 +906,6 @@ function App() {
       return;
     }
 
-    if (!isDobValid) {
-      setErrorMessage("Enter a valid date of birth in the past.");
-      return;
-    }
-
     if (department.length < 2) {
       setErrorMessage("Department must be at least 2 characters.");
       return;
@@ -935,7 +922,6 @@ function App() {
         email,
         phoneNumber,
         idNumber,
-        dateOfBirth,
         affiliation,
         department,
         password,
