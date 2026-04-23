@@ -1445,6 +1445,9 @@ function App() {
         portalActions={portalActions}
         handlePortalAction={handlePortalAction}
         successMessage={successMessage}
+        buildingsCount={buildings.length}
+        roomsCount={rooms.length}
+        ticketsCount={tickets.length}
       />
     );
   }
