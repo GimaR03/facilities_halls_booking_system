@@ -1,4 +1,6 @@
 data/
+.data/
+uploads/
 .m2/
 target/
 *.log

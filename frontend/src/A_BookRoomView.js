@@ -329,7 +329,7 @@ export default function ABookRoomView({
                 <option value="">-- Choose a Building --</option>
                 {buildings.map((building) => (
                   <option key={building.id} value={building.id}>
-                    {building.name} (No {building.buildingNo})
+                    Building {building.buildingNo}
                   </option>
                 ))}
               </select>
@@ -345,7 +345,7 @@ export default function ABookRoomView({
                   <option value="">-- Choose a Floor --</option>
                   {bookRoomFloors.map((floor) => (
                     <option key={floor.id} value={floor.id}>
-                      {floor.label}
+                      Floor {floor.floorNumber ?? floor.label}
                     </option>
                   ))}
                 </select>
@@ -356,7 +356,8 @@ export default function ABookRoomView({
           {bookRoomSelectedFloor && (
             <div className="glass-panel book-room-panel">
               <h2>
-                {bookRoomSelectedBuilding.name} - {bookRoomSelectedFloor.label}
+                Building {bookRoomSelectedBuilding.buildingNo} - Floor{" "}
+                {bookRoomSelectedFloor.floorNumber ?? bookRoomSelectedFloor.label}
               </h2>
               {bookRoomRooms.length === 0 ? (
                 <p className="empty">No rooms on this floor.</p>
