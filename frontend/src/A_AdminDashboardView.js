@@ -274,7 +274,7 @@ export default function A_AdminDashboardView({
                       <option value="">Select Building</option>
                       {buildings.map((building) => (
                         <option key={building.id} value={building.id}>
-                          {building.name} (No {building.buildingNo})
+                          Building {building.buildingNo}
                         </option>
                       ))}
                     </select>
@@ -337,7 +337,7 @@ export default function A_AdminDashboardView({
                       <option value="">Select Building</option>
                       {buildings.map((building) => (
                         <option key={building.id} value={building.id}>
-                          {building.name} (No {building.buildingNo})
+                          Building {building.buildingNo}
                         </option>
                       ))}
                     </select>
@@ -358,7 +358,7 @@ export default function A_AdminDashboardView({
                       <option value="">Select Floor</option>
                       {selectedBuildingFloors.map((floor) => (
                         <option key={floor.id} value={floor.id}>
-                          {floor.label}
+                          Floor {floor.floorNumber ?? floor.label}
                         </option>
                       ))}
                     </select>

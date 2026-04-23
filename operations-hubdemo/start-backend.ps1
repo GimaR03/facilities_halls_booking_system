@@ -22,4 +22,9 @@ $env:JAVA_HOME = $javaHome
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 
 Set-Location $backendDir
+
+if (-not $env:SPRING_PROFILES_ACTIVE) {
+    $env:SPRING_PROFILES_ACTIVE = "local"
+}
+
 cmd /c mvnw.cmd spring-boot:run
