@@ -162,17 +162,10 @@ function App() {
       });
     }
 
-    // Filter out login if already logged in, and add logout
+    // Filter out login if already logged in
     let filteredActions = dynamicActions;
     if (authUser) {
       filteredActions = dynamicActions.filter(a => a.id !== "login");
-      filteredActions.push({
-        id: "logout",
-        title: "Logout",
-        subtitle: `Signed in as ${authUser.fullName}`,
-        accent: "terracotta",
-        icon: "🚪",
-      });
     }
 
     return (
