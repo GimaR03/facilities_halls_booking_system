@@ -61,3 +61,15 @@ export function getTicketBuildingLabel(resourceId) {
   );
   return matchedBuilding ? matchedBuilding.label : `Building ${resourceId}`;
 }
+export function getCategoryColor(category) {
+  const colors = {
+    EQUIPMENT: '#0ea5e9',
+    NETWORK: '#8b5cf6',
+    ELECTRICAL: '#f59e0b',
+    PLUMBING: '#10b981',
+    CLEANING: '#ec4899',
+    SECURITY: '#ef4444',
+    OTHER: '#64748b',
+  };
+  return colors[category] || '#64748b';
+}

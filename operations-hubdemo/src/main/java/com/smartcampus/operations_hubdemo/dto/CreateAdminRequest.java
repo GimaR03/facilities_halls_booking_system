@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public record RegisterRequest(
+public record CreateAdminRequest(
         @Size(max = 120, message = "Full name must be 120 characters or less")
         String fullName,
 

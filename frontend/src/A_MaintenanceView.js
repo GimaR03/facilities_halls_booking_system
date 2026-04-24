@@ -1,4 +1,10 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import ATicketComments from "./ATicketComments";
+import {
+  getTicketNotifications,
+  markTicketNotificationsRead,
+  clearTicketNotifications,
+} from "./ticketNotifications";
 
 export default function AMaintenanceView({
   clearMessages,
@@ -6,6 +12,7 @@ export default function AMaintenanceView({
   handleLogout,
   authUser,
   tickets,
+  loadTickets,
   formatLabel,
   getTicketBuildingLabel,
   handleMaintenanceTicketAction,
@@ -14,6 +21,22 @@ export default function AMaintenanceView({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [pendingTicket, setPendingTicket] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (authUser?.userId) {
+      const notifs = getTicketNotifications(authUser.userId);
+      setNotifications(notifs.filter((n) => !n.read));
+      markTicketNotificationsRead(authUser.userId);
+    }
+  }, [authUser]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadTickets();
+    setRefreshing(false);
+  };
 
   const openTickets = tickets.filter((ticket) => ticket.status === "OPEN");
   const inProgressTickets = tickets.filter((ticket) => ticket.status === "IN_PROGRESS");
@@ -115,6 +138,15 @@ export default function AMaintenanceView({
             <div className="table-actions">
               <button
                 type="button"
+                className="tiny-btn"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                title="Refresh assigned tickets"
+              >
+                {refreshing ? "⏳ Refreshing..." : "🔄 Refresh Tickets"}
+              </button>
+              <button
+                type="button"
                 className="tiny-btn hero-back"
                 onClick={() => {
                   clearMessages();
@@ -137,24 +169,56 @@ export default function AMaintenanceView({
         </header>
 
         {/* Statistics Cards */}
-        <section className="metrics-row">
-          <article className="metric-card">
+        <section className="stats-v3">
+          <article className="stat-card-v3">
             <span>📋 Open Tickets</span>
             <strong>{openTickets.length}</strong>
+            <small>Awaiting response</small>
           </article>
-          <article className="metric-card">
+          <article className="stat-card-v3">
             <span>🔄 In Progress</span>
             <strong>{inProgressTickets.length}</strong>
+            <small>Active maintenance</small>
           </article>
-          <article className="metric-card">
+          <article className="stat-card-v3">
             <span>✅ Resolved</span>
             <strong>{resolvedTickets.length}</strong>
+            <small>Completed tasks</small>
           </article>
-          <article className="metric-card">
+          <article className="stat-card-v3">
             <span>🚫 Closed</span>
             <strong>{closedTickets.length}</strong>
+            <small>Archived records</small>
           </article>
         </section>
+
+        {/* Notifications Banner */}
+        {notifications.length > 0 && (
+          <article className="glass-panel" style={{ marginBottom: "1rem", border: "1px solid rgba(74,222,128,0.4)", background: "rgba(74,222,128,0.08)" }}>
+            <div className="panel-header-actions">
+              <h3 style={{ margin: 0, fontSize: "1rem" }}>🔔 New Tickets Assigned To You</h3>
+              <button
+                type="button"
+                className="tiny-btn"
+                onClick={() => {
+                  clearTicketNotifications(authUser?.userId);
+                  setNotifications([]);
+                }}
+              >
+                Dismiss All
+              </button>
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, margin: "0.5rem 0 0 0" }}>
+              {notifications.map((n) => (
+                <li key={n.id} style={{ padding: "0.4rem 0", borderBottom: "1px solid rgba(255,255,255,0.07)", fontSize: "0.9rem" }}>
+                  <span style={{ marginRight: "0.5rem" }}>🎫</span>
+                  {n.message}
+                  <small style={{ marginLeft: "0.75rem", opacity: 0.6 }}>{n.timestamp}</small>
+                </li>
+              ))}
+            </ul>
+          </article>
+        )}
 
         {/* Confirmation Dialog */}
         {showConfirmDialog && pendingTicket && (
@@ -188,218 +252,105 @@ export default function AMaintenanceView({
             </p>
 
             {tickets.length === 0 ? (
-              <p className="empty">📭 No tickets submitted yet.</p>
+              <p className="empty">📭 No tickets assigned to you yet.</p>
             ) : (
-              <div className="table-wrap">
-                <table className="compact-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Title</th>
-                      <th>Category</th>
-                      <th>Priority</th>
-                      <th>Status</th>
-                      <th>Building</th>
-                      <th>Floor</th>
-                      <th>Hall/Lab No</th>
-                      <th>Created Date</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tickets.map((ticket) => (
-                      <tr key={ticket.id}>
-                        <td>#{ticket.id}</td>
-                        <td>
-                          <strong>{ticket.title}</strong>
-                          <br />
-                          <small>{ticket.description?.substring(0, 50)}...</small>
-                        </td>
-                        <td>
-                          <span className="category-badge">
-                            {formatLabel(ticket.category)}
+              <div className="ticket-grid-modern">
+                {tickets.map((ticket) => (
+                  <article key={ticket.id} className={`ticket-card-modern status-${getStatusClass(ticket.status)}`}>
+                    <div className="ticket-card-glow" />
+                    <div className="ticket-card-content">
+                      <div className="ticket-card-header-modern">
+                        <span className={`status-badge ${getStatusClass(ticket.status)}`}>
+                          {formatLabel(ticket.status)}
+                        </span>
+                        <div className="ticket-priority-indicator">
+                           <span className={`priority-dot ${getPriorityClass(ticket.priority)}`} title={`Priority: ${ticket.priority}`} />
+                        </div>
+                      </div>
+                      
+                      <h3>{ticket.title}</h3>
+                      <p className="ticket-desc-short">{ticket.description}</p>
+                      
+                      <div className="ticket-info-group">
+                        <div className="info-item">
+                          <span className="info-label">Sender</span>
+                          <span className="info-value">{ticket.creatorName || "Unknown"}</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="info-label">Category</span>
+                          <span className="info-value">{formatLabel(ticket.category)}</span>
+                        </div>
+                        <div className="info-item full">
+                          <span className="info-label">Location</span>
+                          <span className="info-value">
+                            🏢 {getTicketBuildingLabel(ticket.resourceId)}, Floor {ticket.userId}
+                            {ticket.assignedTechnicianId && ` · Lab: ${ticket.assignedTechnicianId}`}
                           </span>
-                        </td>
-                        <td>
-                          <span className={`priority-badge ${getPriorityClass(ticket.priority)}`}>
-                            {formatLabel(ticket.priority)}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`status-badge ${getStatusClass(ticket.status)}`}>
-                            {formatLabel(ticket.status)}
-                          </span>
-                        </td>
-                        <td>🏢 {getTicketBuildingLabel(ticket.resourceId)}</td>
-                        <td>📍 Floor {ticket.userId}</td>
-                        <td>🏠 {ticket.assignedTechnicianId || "Not specified"}</td>
-                        <td>
-                          <small>{ticket.createdDate?.replace("T", " ")}</small>
-                        </td>
-                        <td>
-                          <div className="table-actions" style={{ gap: "0.3rem", flexWrap: "wrap" }}>
-                            {ticket.status === "OPEN" && (
-                              <>
-                                <button
-                                  type="button"
-                                  className="tiny-btn"
-                                  onClick={() => handleActionClick(ticket, "ACCEPT")}
-                                  title="Accept this ticket"
-                                >
-                                  ✓ Accept
-                                </button>
-                                <button
-                                  type="button"
-                                  className="tiny-btn danger"
-                                  onClick={() => handleActionClick(ticket, "REJECT")}
-                                  title="Reject this ticket"
-                                >
-                                  ✗ Reject
-                                </button>
-                              </>
-                            )}
-                            
-                            {ticket.status === "IN_PROGRESS" && (
-                              <>
-                                <button
-                                  type="button"
-                                  className="tiny-btn"
-                                  onClick={() => handleActionClick(ticket, "RESOLVED")}
-                                  title="Mark as resolved"
-                                >
-                                  ✅ Resolved
-                                </button>
-                                <button
-                                  type="button"
-                                  className="tiny-btn danger"
-                                  onClick={() => handleActionClick(ticket, "CANCEL")}
-                                  title="Cancel this ticket"
-                                >
-                                  ❌ Cancel
-                                </button>
-                              </>
-                            )}
-                            
-                            {ticket.status === "OPEN" && (
-                              <button
-                                type="button"
-                                className="tiny-btn"
-                                onClick={() => handleActionClick(ticket, "IN_PROGRESS")}
-                                title="Start working on this ticket"
-                              >
-                                🔄 In Process
-                              </button>
-                            )}
+                        </div>
+                      </div>
 
-                            {ticket.status === "RESOLVED" && (
-                              <span className="resolved-label">✓ Completed</span>
-                            )}
-                            
-                            {ticket.status === "CLOSED" && (
-                              <span className="closed-label">✗ Closed</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                      <div className="maintenance-actions-row" style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {ticket.status === "OPEN" && (
+                          <>
+                            <button
+                              type="button"
+                              className="tiny-btn"
+                              onClick={() => handleActionClick(ticket, "ACCEPT")}
+                            >
+                              ✓ Accept
+                            </button>
+                            <button
+                              type="button"
+                              className="tiny-btn"
+                              onClick={() => handleActionClick(ticket, "IN_PROGRESS")}
+                            >
+                              🔄 Start Work
+                            </button>
+                            <button
+                              type="button"
+                              className="tiny-btn danger"
+                              onClick={() => handleActionClick(ticket, "REJECT")}
+                            >
+                              ✗ Reject
+                            </button>
+                          </>
+                        )}
+
+                        {ticket.status === "IN_PROGRESS" && (
+                          <>
+                            <button
+                              type="button"
+                              className="tiny-btn"
+                              onClick={() => handleActionClick(ticket, "RESOLVED")}
+                            >
+                              ✅ Mark Resolved
+                            </button>
+                            <button
+                              type="button"
+                              className="tiny-btn danger"
+                              onClick={() => handleActionClick(ticket, "CANCEL")}
+                            >
+                              ❌ Cancel
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="ticket-card-footer-modern" style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.8rem' }}>
+                         <span className="reported-date">🕒 {ticket.createdDate?.replace("T", " ")}</span>
+                         <div style={{ marginTop: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '0.5rem' }}>
+                           <ATicketComments ticketId={ticket.id} authUser={authUser} />
+                         </div>
+                      </div>
+                    </div>
+                  </article>
+                ))}
               </div>
             )}
           </article>
         </section>
       </div>
-
-      <style jsx>{`
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.7);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 1000;
-        }
-        
-        .modal-content {
-          background: #1e293b;
-          border-radius: 12px;
-          padding: 1.5rem;
-          max-width: 500px;
-          width: 90%;
-          border: 1px solid #334155;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        }
-        
-        .modal-content h3 {
-          margin: 0 0 1rem 0;
-          color: #f1f5f9;
-        }
-        
-        .modal-body {
-          margin: 1rem 0;
-          color: #cbd5e1;
-          line-height: 1.6;
-        }
-        
-        .modal-actions {
-          display: flex;
-          gap: 0.75rem;
-          justify-content: flex-end;
-          margin-top: 1.5rem;
-        }
-        
-        .priority-urgent {
-          background: #dc2626;
-          color: white;
-        }
-        
-        .priority-high {
-          background: #f97316;
-          color: white;
-        }
-        
-        .priority-medium {
-          background: #eab308;
-          color: white;
-        }
-        
-        .priority-low {
-          background: #22c55e;
-          color: white;
-        }
-        
-        .status-open {
-          background: #3b82f6;
-          color: white;
-        }
-        
-        .status-progress {
-          background: #8b5cf6;
-          color: white;
-        }
-        
-        .status-resolved {
-          background: #10b981;
-          color: white;
-        }
-        
-        .status-closed {
-          background: #6b7280;
-          color: white;
-        }
-        
-        .category-badge {
-          background: #334155;
-          color: #cbd5e1;
-          padding: 0.2rem 0.5rem;
-          border-radius: 4px;
-          font-size: 0.8rem;
-        }
-        
+      <style>{`
         .priority-badge, .status-badge {
           padding: 0.2rem 0.5rem;
           border-radius: 4px;

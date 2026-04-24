@@ -151,6 +151,69 @@ export function loginUser(credentials) {
   });
 }
 
+export function googleLoginUser(payload) {
+  return authRequest("/google-login", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchAdmins(actingAdminEmail) {
+  return authRequest("/admins", {
+    method: "GET",
+    headers: {
+      "X-User-Email": actingAdminEmail,
+    },
+  });
+}
+
+export function createAdminUser(adminData, actingAdminEmail) {
+  return authRequest("/admins", {
+    method: "POST",
+    headers: {
+      "X-User-Email": actingAdminEmail,
+    },
+    body: JSON.stringify(adminData),
+  });
+}
+
+export function fetchMaintenanceStaff(actingAdminEmail) {
+  return authRequest("/maintenance", {
+    method: "GET",
+    headers: {
+      "X-User-Email": actingAdminEmail,
+    },
+  });
+}
+
+export function createMaintenanceUser(maintenanceData, actingAdminEmail) {
+  return authRequest("/maintenance", {
+    method: "POST",
+    headers: {
+      "X-User-Email": actingAdminEmail,
+    },
+    body: JSON.stringify(maintenanceData),
+  });
+}
+
+export function fetchAllUsers(actingAdminEmail) {
+  return authRequest("/users", {
+    method: "GET",
+    headers: {
+      "X-User-Email": actingAdminEmail,
+    },
+  });
+}
+
+export function deleteUserAccount(userId, actingAdminEmail) {
+  return authRequest(`/users/${userId}`, {
+    method: "DELETE",
+    headers: {
+      "X-User-Email": actingAdminEmail,
+    },
+  });
+}
+
 export function createBuilding(buildingData) {
   return request("/buildings", {
     method: "POST",
@@ -215,21 +278,60 @@ export function deleteRoom(roomId) {
   });
 }
 
-export function fetchTickets() {
-  return request("/tickets");
+export function fetchTickets({ userId, role }) {
+  return request("/tickets", {
+    method: "GET",
+    headers: {
+      "X-User-Id": String(userId || ""),
+      "X-User-Role": role || "",
+    },
+  });
 }
 
-export function createTicket(ticketData) {
+export function createTicket(ticketData, { userId, role } = {}) {
   return request("/tickets", {
     method: "POST",
+    headers: {
+      "X-User-Id": String(userId || ""),
+      "X-User-Role": role || "",
+    },
     body: ticketData,
   });
 }
 
-export function updateTicket(ticketId, ticketData) {
+export function updateTicket(ticketId, ticketData, { userId, role } = {}) {
   return request(`/tickets/${ticketId}`, {
     method: "PUT",
+    headers: {
+      "X-User-Id": String(userId || ""),
+      "X-User-Role": role || "",
+    },
     body: JSON.stringify(ticketData),
+  });
+}
+
+export function assignTicketToMaintenance(ticketId, maintenanceUserId, { role } = {}) {
+  return request(`/tickets/${ticketId}/assign`, {
+    method: "POST",
+    headers: {
+      "X-User-Role": role || "",
+    },
+    body: JSON.stringify({ maintenanceUserId }),
+  });
+}
+
+export function getTicketComments(ticketId) {
+  return request(`/tickets/${ticketId}/comments`);
+}
+
+export function addTicketComment(ticketId, content, { userId, role } = {}) {
+  return request(`/tickets/${ticketId}/comments`, {
+    method: "POST",
+    headers: {
+      "X-User-Id": String(userId || ""),
+      "X-User-Role": role || "",
+    },
+    body: JSON.stringify({ content }),
   });
 }
 

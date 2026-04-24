@@ -3,10 +3,13 @@ package com.smartcampus.operations_hubdemo.repository;
 import com.smartcampus.operations_hubdemo.model.CampusUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface CampusUserRepository extends JpaRepository<CampusUser, Long> {
     Optional<CampusUser> findByEmail(String email);
+
+    List<CampusUser> findAllByRole(String role);
 
     boolean existsByEmail(String email);
 
