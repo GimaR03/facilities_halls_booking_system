@@ -193,6 +193,7 @@ function App() {
     if (id === "book") {
       if (!authUser) { setErrorMessage("Please login to book."); setCurrentDashboard("login"); return; }
       setCurrentDashboard("book");
+      bookings.setShowBookingStatus(false);
       bookings.loadMyBookings(authUser);
       return;
     }
@@ -258,6 +259,7 @@ function App() {
     return (
       <ABookRoomView
         {...bookings}
+        authUser={authUser}
         clearMessages={clearMessages}
         setCurrentDashboard={setCurrentDashboard}
         handleLogout={auth.handleLogout}

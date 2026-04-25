@@ -44,12 +44,12 @@ export default function ABookRoomView({
   async function handleViewBookingStatus() {
     clearMessages();
 
-    if (!bookingUserId) {
-      setErrorMessage("Enter a User ID to view booking status.");
+    if (!authUser?.userId) {
+      setErrorMessage("Please log in to view your booking status.");
       return;
     }
 
-    await loadMyBookings();
+    await loadMyBookings(authUser);
     setStatusFilter("ALL");
     setShowBookingStatus(true);
 
@@ -334,14 +334,15 @@ export default function ABookRoomView({
                   </select>
                 </label>
                 <label className="field-card">
-                  User ID
+                  Booking User
                   <input
-                    required
-                    min="1"
-                    type="number"
-                    value={bookingUserId}
-                    onChange={(event) => setBookingUserId(event.target.value)}
-                    placeholder="1"
+                    type="text"
+                    value={
+                      authUser?.userId
+                        ? `${authUser.fullName || "User"} (ID: ${authUser.userId})`
+                        : "Login required"
+                    }
+                    readOnly
                   />
                 </label>
                 <label className="field-card">
@@ -626,7 +627,7 @@ export default function ABookRoomView({
               </div>
 
               {filteredBookings.length === 0 ? (
-                <p className="empty">No bookings found for this user.</p>
+                <p className="empty">No bookings found for your account yet.</p>
               ) : (
                 <div className="ticket-grid-modern">
                   {filteredBookings.map((booking) => {
