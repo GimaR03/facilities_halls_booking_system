@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import com.smartcampus.operations_hubdemo.model.Building;
@@ -29,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 class BookingManagementTests {
 
     @Autowired
@@ -134,6 +136,27 @@ class BookingManagementTests {
         mockMvc.perform(patch("/api/bookings/{id}/cancel", bookingId)
                         .header("X-User-Id", "41"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void invalidResourceIdReturnsClearMessage() throws Exception {
+        String payload = """
+                {
+                  "resourceId": 999999,
+                  "date": "2026-04-23",
+                  "startTime": "10:00:00",
+                  "endTime": "11:00:00",
+                  "purpose": "Lecture",
+                  "expectedAttendees": 10
+                }
+                """;
+
+        mockMvc.perform(post("/api/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-User-Id", "10")
+                        .content(payload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Selected room ID was not found. Please refresh and choose a valid room."));
     }
 
     private long createBooking(long userId) throws Exception {

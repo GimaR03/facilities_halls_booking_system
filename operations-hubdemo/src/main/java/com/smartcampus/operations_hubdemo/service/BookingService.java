@@ -7,6 +7,7 @@ import com.smartcampus.operations_hubdemo.dto.BookingRejectRequest;
 import com.smartcampus.operations_hubdemo.dto.BookingResponse;
 import com.smartcampus.operations_hubdemo.model.BookingStatus;
 import com.smartcampus.operations_hubdemo.model.Room;
+import com.smartcampus.operations_hubdemo.model.RoomStatus;
 import com.smartcampus.operations_hubdemo.repository.RoomRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,24 @@ public class BookingService {
         }
 
         Room room = roomRepository.findWithBuildingAndFloorById(request.resourceId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid resourceId (room not found)"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Selected room ID was not found. Please refresh and choose a valid room."
+                ));
+
+        if (room.getStatus() != RoomStatus.ACTIVE) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Selected room is not available for booking."
+            );
+        }
+
+        if (request.startTime().isBefore(room.getAvailabilityStart()) || request.endTime().isAfter(room.getAvailabilityEnd())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Selected time is outside the room availability window."
+            );
+        }
 
         boolean overlaps = bookings.stream().anyMatch(existing ->
                 existing.resourceId.equals(request.resourceId())

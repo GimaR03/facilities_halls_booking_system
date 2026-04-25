@@ -237,7 +237,12 @@ public class CampusService {
     }
 
     private FloorResponse toFloorResponse(Floor floor) {
-        return new FloorResponse(floor.getId(), floor.getFloorNumber(), floor.getLabel());
+        return new FloorResponse(
+                floor.getId(),
+                floor.getBuilding().getId(),
+                floor.getFloorNumber(),
+                floor.getLabel()
+        );
     }
 
     private RoomResponse toRoomResponse(Room room) {
