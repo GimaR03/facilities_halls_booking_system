@@ -167,24 +167,26 @@ export function useCampusTickets({ setErrorMessage, setSuccessMessage, clearMess
 
   const handleAssignTicket = async (ticketId, maintenanceUserId) => {
     clearMessages();
-    if (!maintenanceUserId) return;
+    const targetMaintenanceId = maintenanceUserId ? Number(maintenanceUserId) : null;
     try {
       const { assignTicketToMaintenance } = await import("../api/campusApi");
-      const updated = await assignTicketToMaintenance(ticketId, Number(maintenanceUserId), {
+      const updated = await assignTicketToMaintenance(ticketId, targetMaintenanceId, {
         role: authUser.role,
       });
       setTickets((curr) => curr.map((t) => (t.id === ticketId ? updated : t)));
-      setSuccessMessage("Ticket assigned to maintenance.");
+      setSuccessMessage(targetMaintenanceId ? "Ticket assigned to maintenance." : "Ticket unassigned.");
 
-      // Notify the maintenance user
-      dispatchTicketNotification({
-        type: "ASSIGNED",
-        ticketId: updated.id,
-        ticketTitle: updated.title,
-        newStatus: updated.status,
-        creatorId: Number(maintenanceUserId), // re-use creatorId slot for maintenance user
-        message: `A new ticket #${updated.id} "${updated.title}" has been assigned to you.`,
-      });
+      // Notify the maintenance user if assigned
+      if (targetMaintenanceId) {
+        dispatchTicketNotification({
+          type: "ASSIGNED",
+          ticketId: updated.id,
+          ticketTitle: updated.title,
+          newStatus: updated.status,
+          creatorId: targetMaintenanceId, 
+          message: `A new ticket #${updated.id} "${updated.title}" has been assigned to you.`,
+        });
+      }
     } catch (error) {
       setErrorMessage(error.message);
     }
