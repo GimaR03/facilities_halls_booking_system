@@ -4369,6 +4369,76 @@ thead th {
   line-height: 1.6;
 }
 
+.registration-value-section {
+  margin-top: 2rem;
+  padding: 1.6rem;
+  border-radius: 28px;
+  border: 1px solid rgba(20, 35, 31, 0.08);
+  background:
+    radial-gradient(circle at top right, rgba(59, 131, 196, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 249, 246, 0.86));
+  box-shadow: var(--shadow-soft);
+}
+
+.registration-value-header {
+  max-width: 760px;
+}
+
+.registration-value-header h2 {
+  margin: 0;
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  line-height: 1.1;
+}
+
+.registration-value-header p {
+  margin: 0.6rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.98rem;
+  line-height: 1.7;
+}
+
+.registration-value-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.35rem;
+}
+
+.registration-value-card {
+  padding: 1.25rem;
+  border-radius: 22px;
+  border: 1px solid rgba(20, 35, 31, 0.08);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 16px 28px rgba(20, 35, 31, 0.06);
+}
+
+.registration-value-tag {
+  display: inline-block;
+  margin-bottom: 0.8rem;
+  padding: 0.32rem 0.62rem;
+  border-radius: 999px;
+  background: rgba(15, 136, 127, 0.08);
+  border: 1px solid rgba(15, 136, 127, 0.14);
+  color: var(--teal-deep);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.registration-value-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+
+.registration-value-card p {
+  margin: 0.6rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
 @media (max-width: 1180px) {
   .login-hero-v4,
   .auth-layout-v3 {
@@ -4401,7 +4471,8 @@ thead th {
 
   .auth-feature-grid,
   .auth-metric-grid,
-  .auth-workflow-list {
+  .auth-workflow-list,
+  .registration-value-grid {
     grid-template-columns: 1fr;
   }
 }

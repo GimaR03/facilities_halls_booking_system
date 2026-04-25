@@ -139,6 +139,49 @@ export default function ARegisterView({
           </div>
         </section>
 
+        <section className="registration-value-section animate-fade-in">
+          <div className="registration-value-header">
+            <span className="panel-kicker">Why Join Smart Campus</span>
+            <h2>More reasons to create your account</h2>
+            <p>
+              Registering gives you a simpler way to connect with booking,
+              facilities, and campus support services from one website.
+            </p>
+          </div>
+
+          <div className="registration-value-grid">
+            <article className="registration-value-card">
+              <span className="registration-value-tag">Why you should join</span>
+              <h3>Get faster access to the campus services you use most</h3>
+              <p>
+                Joining the website helps you manage your requests in one place
+                instead of depending on scattered emails, verbal follow-ups, or
+                manual updates.
+              </p>
+            </article>
+
+            <article className="registration-value-card">
+              <span className="registration-value-tag">What you can do with it</span>
+              <h3>Book spaces, follow requests, and stay informed</h3>
+              <p>
+                You can use the platform to request halls and rooms, monitor
+                approvals, report issues, and stay updated on the status of
+                maintenance or operational actions related to your campus needs.
+              </p>
+            </article>
+
+            <article className="registration-value-card">
+              <span className="registration-value-tag">Why this website is important</span>
+              <h3>It keeps campus coordination organized and visible</h3>
+              <p>
+                This website creates a shared system for students, staff, and
+                administrators, helping everyone work with clearer information,
+                quicker responses, and better coordination across facilities.
+              </p>
+            </article>
+          </div>
+        </section>
+
         {errorMessage && <div className="toast-message error animate-fade-in"><span>{errorMessage}</span></div>}
         {successMessage && <div className="toast-message success animate-fade-in"><span>{successMessage}</span></div>}
       </div>
