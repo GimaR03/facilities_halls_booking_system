@@ -26,7 +26,7 @@ export function useCampusBookings({
   buildings = [],
   rooms = []
 }) {
-  const [bookingUserId, setBookingUserId] = useState("1");
+  const [bookingUserId, setBookingUserId] = useState("");
   const [bookingForm, setBookingForm] = useState({
     resourceId: "",
     date: getCurrentDateTimeValue().slice(0, 10),
@@ -294,6 +294,32 @@ export function useCampusBookings({
     if (!bookRoomSelectedFloor) return [];
     return rooms.filter((r) => String(r.floorId) === String(bookRoomSelectedFloor.id));
   }, [rooms, bookRoomSelectedFloor]);
+
+  useEffect(() => {
+    if (authUser?.userId) {
+      const nextUserId = String(authUser.userId);
+      setBookingUserId(nextUserId);
+
+      const syncMyBookings = async () => {
+        try {
+          const data = await fetchMyBookings({
+            userId: authUser.userId,
+            role: authUser.role,
+          });
+          setMyBookings(data);
+        } catch (error) {
+          setErrorMessage(error.message);
+        }
+      };
+
+      syncMyBookings();
+      return;
+    }
+
+    setBookingUserId("");
+    setMyBookings([]);
+    setShowBookingStatus(false);
+  }, [authUser, setErrorMessage]);
 
   useEffect(() => {
     const hasSelectedLocation = bookRoomLocationOptions.some(
