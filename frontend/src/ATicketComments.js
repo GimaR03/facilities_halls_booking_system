@@ -1,27 +1,34 @@
 import React, { useState, useEffect } from "react";
 import { getTicketComments, addTicketComment } from "./api/campusApi";
+import { createNotification } from "./notificationUtils";
 
-export default function ATicketComments({ ticketId, authUser }) {
+export default function ATicketComments({
+  ticketId,
+  authUser,
+  ticketTitle,
+  ticketCreatorId,
+  addSystemNotification,
+}) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const loadComments = async () => {
+      setLoading(true);
+      try {
+        const data = await getTicketComments(ticketId);
+        setComments(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadComments();
   }, [ticketId]);
-
-  const loadComments = async () => {
-    setLoading(true);
-    try {
-      const data = await getTicketComments(ticketId);
-      setComments(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,6 +39,21 @@ export default function ATicketComments({ ticketId, authUser }) {
         role: authUser?.role,
       });
       setComments((prev) => [...prev, added]);
+      if (
+        ticketCreatorId &&
+        authUser?.userId &&
+        String(authUser.userId) !== String(ticketCreatorId)
+      ) {
+        addSystemNotification?.(
+          createNotification({
+            type: "TICKET_COMMENT_ADDED",
+            category: "TICKET",
+            recipientUserId: ticketCreatorId,
+            title: `New comment on "${ticketTitle || `Ticket #${ticketId}`}"`,
+            message: `${added.authorName || "A team member"} added a new comment to your ticket.`,
+          })
+        );
+      }
       setNewComment("");
     } catch (err) {
       setError(err.message);

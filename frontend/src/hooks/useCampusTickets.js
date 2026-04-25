@@ -5,11 +5,18 @@ import {
   updateTicket as updateTicketApi,
   deleteTicket as deleteTicketApi,
 } from "../api/campusApi";
-import { getCurrentDateTimeValue, getTicketBuildingLabel } from "../A_helpers";
+import { getCurrentDateTimeValue } from "../A_helpers";
 import { ticketBuildingOptions, MAX_TICKET_IMAGE_SIZE_BYTES, MAX_TICKET_IMAGE_REQUEST_BYTES } from "../A_constants";
-import { dispatchTicketNotification } from "../ticketNotifications";
+import { createNotification } from "../notificationUtils";
 
-export function useCampusTickets({ setErrorMessage, setSuccessMessage, clearMessages, setCurrentDashboard, authUser }) {
+export function useCampusTickets({
+  setErrorMessage,
+  setSuccessMessage,
+  clearMessages,
+  setCurrentDashboard,
+  authUser,
+  addSystemNotification,
+}) {
   const [tickets, setTickets] = useState([]);
   const [editingTicketId, setEditingTicketId] = useState(null);
   const [latestSubmittedTicket, setLatestSubmittedTicket] = useState(null);
@@ -152,14 +159,15 @@ export function useCampusTickets({ setErrorMessage, setSuccessMessage, clearMess
       setTickets((curr) => curr.map((t) => (t.id === ticket.id ? updated : t)));
       setSuccessMessage(`Ticket status updated to ${newStatus}.`);
 
-      // Dispatch an in-app notification for the ticket creator
-      dispatchTicketNotification({
-        type: "STATUS_CHANGE",
-        ticketId: ticket.id,
-        ticketTitle: ticket.title,
-        newStatus,
-        creatorId: ticket.creatorId,
-      });
+      addSystemNotification(
+        createNotification({
+          type: "TICKET_STATUS_CHANGED",
+          category: "TICKET",
+          recipientUserId: ticket.creatorId,
+          title: `Ticket "${ticket.title}" updated`,
+          message: `Your ticket status changed to ${newStatus}.`,
+        })
+      );
     } catch (error) {
       setErrorMessage(error.message);
     }
@@ -176,15 +184,15 @@ export function useCampusTickets({ setErrorMessage, setSuccessMessage, clearMess
       setTickets((curr) => curr.map((t) => (t.id === ticketId ? updated : t)));
       setSuccessMessage("Ticket assigned to maintenance.");
 
-      // Notify the maintenance user
-      dispatchTicketNotification({
-        type: "ASSIGNED",
-        ticketId: updated.id,
-        ticketTitle: updated.title,
-        newStatus: updated.status,
-        creatorId: Number(maintenanceUserId), // re-use creatorId slot for maintenance user
-        message: `A new ticket #${updated.id} "${updated.title}" has been assigned to you.`,
-      });
+      addSystemNotification(
+        createNotification({
+          type: "TICKET_ASSIGNED",
+          category: "TICKET",
+          recipientUserId: Number(maintenanceUserId),
+          title: `Ticket #${updated.id} assigned to you`,
+          message: `You have been assigned ticket "${updated.title}".`,
+        })
+      );
     } catch (error) {
       setErrorMessage(error.message);
     }
