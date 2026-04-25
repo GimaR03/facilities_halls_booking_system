@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   createBookingRequest,
   fetchMyBookings,
@@ -67,6 +67,18 @@ export function useCampusBookings({
     clearMessages();
     setBookingLoading(true);
     try {
+      const selectedRoom = rooms.find(
+        (room) => String(room.id) === String(bookingForm.resourceId)
+      );
+
+      if (!selectedRoom) {
+        throw new Error("Please choose a valid room before submitting the booking.");
+      }
+
+      if (selectedRoom.status !== "ACTIVE") {
+        throw new Error("Selected room is not available for booking.");
+      }
+
       const payload = {
         requestedByUserId: Number(bookingUserId),
         resourceId: Number(bookingForm.resourceId),
@@ -215,6 +227,54 @@ export function useCampusBookings({
   const [bookRoomSelectedBuildingId, setBookRoomSelectedBuildingId] = useState(null);
   const [bookRoomSelectedFloorId, setBookRoomSelectedFloorId] = useState(null);
 
+  const bookRoomLocationOptions = useMemo(() => {
+    const buildingMap = new Map(
+      buildings.map((building) => [String(building.id), building])
+    );
+    const seen = new Set();
+
+    return rooms
+      .map((room) => {
+        const building = buildingMap.get(String(room.buildingId));
+        if (!building) {
+          return null;
+        }
+
+        const floor = (building.floors || []).find(
+          (item) => String(item.id) === String(room.floorId)
+        );
+        if (!floor) {
+          return null;
+        }
+
+        const key = `${building.id}_${floor.id}`;
+        if (seen.has(key)) {
+          return null;
+        }
+        seen.add(key);
+
+        return {
+          value: key,
+          buildingId: String(building.id),
+          floorId: String(floor.id),
+          buildingNo: building.buildingNo,
+          buildingName: building.name,
+          floorNumber: floor.floorNumber,
+          floorLabel: floor.label,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        const buildingCompare = String(a.buildingNo).localeCompare(String(b.buildingNo), undefined, {
+          numeric: true,
+        });
+        if (buildingCompare !== 0) {
+          return buildingCompare;
+        }
+        return (a.floorNumber || 0) - (b.floorNumber || 0);
+      });
+  }, [buildings, rooms]);
+
   const bookRoomSelectedBuilding = useMemo(
     () => buildings.find((b) => String(b.id) === String(bookRoomSelectedBuildingId)),
     [buildings, bookRoomSelectedBuildingId]
@@ -234,6 +294,52 @@ export function useCampusBookings({
     if (!bookRoomSelectedFloor) return [];
     return rooms.filter((r) => String(r.floorId) === String(bookRoomSelectedFloor.id));
   }, [rooms, bookRoomSelectedFloor]);
+
+  useEffect(() => {
+    const hasSelectedLocation = bookRoomLocationOptions.some(
+      (option) =>
+        option.buildingId === String(bookRoomSelectedBuildingId) &&
+        option.floorId === String(bookRoomSelectedFloorId)
+    );
+
+    if (!hasSelectedLocation) {
+      setBookRoomSelectedBuildingId(null);
+      setBookRoomSelectedFloorId(null);
+    }
+  }, [bookRoomLocationOptions, bookRoomSelectedBuildingId, bookRoomSelectedFloorId]);
+
+  useEffect(() => {
+    if (!bookingForm.resourceId) {
+      return;
+    }
+
+    const selectedRoomExists = rooms.some(
+      (room) => String(room.id) === String(bookingForm.resourceId)
+    );
+
+    if (!selectedRoomExists) {
+      setBookingForm((current) => ({
+        ...current,
+        resourceId: "",
+      }));
+      return;
+    }
+
+    if (!bookRoomSelectedFloor) {
+      return;
+    }
+
+    const selectedRoomOnChosenFloor = bookRoomRooms.some(
+      (room) => String(room.id) === String(bookingForm.resourceId)
+    );
+
+    if (!selectedRoomOnChosenFloor) {
+      setBookingForm((current) => ({
+        ...current,
+        resourceId: "",
+      }));
+    }
+  }, [rooms, bookRoomRooms, bookRoomSelectedFloor, bookingForm.resourceId]);
 
   return {
     bookingUserId,
@@ -264,6 +370,7 @@ export function useCampusBookings({
     setBookRoomSelectedBuildingId,
     bookRoomSelectedFloorId,
     setBookRoomSelectedFloorId,
+    bookRoomLocationOptions,
     bookRoomSelectedBuilding,
     bookRoomFloors,
     bookRoomSelectedFloor,

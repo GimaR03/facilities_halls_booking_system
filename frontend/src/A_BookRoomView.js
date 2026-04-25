@@ -6,6 +6,7 @@ export default function ABookRoomView({
   setCurrentDashboard,
   handleLogout,
   buildings,
+  bookRoomLocationOptions,
   bookRoomSelectedBuildingId,
   setBookRoomSelectedBuildingId,
   setBookRoomSelectedFloorId,
@@ -134,6 +135,10 @@ export default function ABookRoomView({
       purpose: current.purpose || `Booking request for ${room.name}`,
     }));
   }
+
+  const selectedLocationValue = bookRoomSelectedFloorId
+    ? `${bookRoomSelectedBuildingId}_${bookRoomSelectedFloorId}`
+    : "";
 
   return (
     <main className="dashboard-shell">
@@ -270,6 +275,65 @@ export default function ABookRoomView({
 
               <div className="room-field-grid booking-form-grid">
                 <label className="field-card">
+                  Location
+                  <select
+                    required
+                    value={selectedLocationValue}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      clearMessages();
+                      setBookingForm((current) => ({
+                        ...current,
+                        resourceId: "",
+                      }));
+
+                      if (!value) {
+                        setBookRoomSelectedBuildingId(null);
+                        setBookRoomSelectedFloorId(null);
+                        return;
+                      }
+
+                      const [buildingId, floorId] = value.split("_");
+                      setBookRoomSelectedBuildingId(buildingId);
+                      setBookRoomSelectedFloorId(floorId);
+                    }}
+                  >
+                    <option value="">Choose a building and floor</option>
+                    {bookRoomLocationOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        Building {option.buildingNo} - Floor {option.floorLabel || option.floorNumber}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field-card">
+                  Room
+                  <select
+                    required
+                    value={bookingForm.resourceId}
+                    disabled={!bookRoomSelectedFloor || bookRoomRooms.length === 0}
+                    onChange={(event) =>
+                      setBookingForm((current) => ({
+                        ...current,
+                        resourceId: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">
+                      {!bookRoomSelectedFloor
+                        ? "Select a location first"
+                        : bookRoomRooms.length === 0
+                          ? "No rooms on this floor"
+                          : "Choose a room"}
+                    </option>
+                    {bookRoomRooms.map((room) => (
+                      <option key={room.id} value={room.id} disabled={room.status !== "ACTIVE"}>
+                        {room.name} ({room.id}) {room.status !== "ACTIVE" ? `- ${formatLabel(room.status)}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field-card">
                   User ID
                   <input
                     required
@@ -287,13 +351,8 @@ export default function ABookRoomView({
                     min="1"
                     type="number"
                     value={bookingForm.resourceId}
-                    onChange={(event) =>
-                      setBookingForm((current) => ({
-                        ...current,
-                        resourceId: event.target.value,
-                      }))
-                    }
-                    placeholder="Auto fill by Book Now"
+                    readOnly
+                    placeholder="Auto filled from room selection"
                   />
                 </label>
                 <label className="field-card">
@@ -419,9 +478,14 @@ export default function ABookRoomView({
             <div className="selector-group combined-selector">
               <label>Select Location (Building & Floor)</label>
               <select
-                value={bookRoomSelectedFloorId ? `${bookRoomSelectedBuildingId}_${bookRoomSelectedFloorId}` : ""}
+                value={selectedLocationValue}
                 onChange={(event) => {
                   const val = event.target.value;
+                  clearMessages();
+                  setBookingForm((current) => ({
+                    ...current,
+                    resourceId: "",
+                  }));
                   if (!val) {
                     setBookRoomSelectedBuildingId(null);
                     setBookRoomSelectedFloorId(null);
@@ -433,14 +497,10 @@ export default function ABookRoomView({
                 }}
               >
                 <option value="">-- Choose Building & Floor --</option>
-                {buildings.map((building) => (
-                  <optgroup key={building.id} label={`Building ${building.buildingNo}: ${building.name}`}>
-                    {building.floors?.map((floor) => (
-                      <option key={floor.id} value={`${building.id}_${floor.id}`}>
-                        Building {building.buildingNo} - Floor {floor.label || floor.floorNumber}
-                      </option>
-                    ))}
-                  </optgroup>
+                {bookRoomLocationOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    Building {option.buildingNo} - Floor {option.floorLabel || option.floorNumber}
+                  </option>
                 ))}
               </select>
             </div>

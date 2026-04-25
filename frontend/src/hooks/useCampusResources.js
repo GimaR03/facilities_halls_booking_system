@@ -149,6 +149,11 @@ export function useCampusResources({ setErrorMessage, setSuccessMessage, setIsLo
     }
   };
 
+  const syncResources = async () => {
+    const data = await loadResources();
+    return data;
+  };
+
   const handleCreateBuilding = async (e) => {
     e.preventDefault();
     clearMessages();
@@ -164,12 +169,7 @@ export function useCampusResources({ setErrorMessage, setSuccessMessage, setIsLo
         ? await updateBuildingApi(editingBuildingId, payload)
         : await createBuilding(payload);
 
-      setBuildings((current) => {
-        const updated = isEditing
-          ? current.map((item) => (item.id === editingBuildingId ? saved : item))
-          : [...current, saved];
-        return updated.sort((a, b) => a.buildingNo.localeCompare(b.buildingNo, undefined, { numeric: true }));
-      });
+      await syncResources();
 
       setBuildingForm({ buildingNo: "", name: "", floorCount: 1 });
       setEditingBuildingId(null);
@@ -192,23 +192,7 @@ export function useCampusResources({ setErrorMessage, setSuccessMessage, setIsLo
       const saved = isEditing
         ? await updateFloorApi(editingFloorId, payload)
         : await addFloor(Number(floorForm.buildingId), payload);
-
-      const targetId = isEditing
-        ? buildings.find((b) => b.floors.some((f) => f.id === editingFloorId))?.id || Number(floorForm.buildingId)
-        : Number(floorForm.buildingId);
-
-      setBuildings((current) =>
-        current.map((b) =>
-          String(b.id) === String(targetId)
-            ? {
-                ...b,
-                floors: isEditing
-                  ? b.floors.map((f) => (f.id === editingFloorId ? saved : f)).sort((a, b) => a.floorNumber - b.floorNumber)
-                  : [...b.floors, saved].sort((a, b) => a.floorNumber - b.floorNumber),
-              }
-            : b
-        )
-      );
+      await syncResources();
 
       setFloorForm((prev) => ({ ...prev, floorNumber: "", label: "" }));
       setEditingFloorId(null);
@@ -238,7 +222,7 @@ export function useCampusResources({ setErrorMessage, setSuccessMessage, setIsLo
 
       const saved = isEditing ? await updateRoomApi(editingRoomId, payload) : await createRoom(payload);
 
-      setRooms((current) => (isEditing ? current.map((r) => (r.id === editingRoomId ? saved : r)) : [saved, ...current]));
+      await syncResources();
       setRoomForm((prev) => ({ ...prev, floorId: "", name: "", description: "" }));
       setEditingRoomId(null);
       setSuccessMessage(isEditing ? `Room ${saved.name} updated.` : `Room ${saved.name} created.`);
@@ -258,7 +242,7 @@ export function useCampusResources({ setErrorMessage, setSuccessMessage, setIsLo
     if (!window.confirm(`Delete building ${b.name}?`)) return;
     try {
       await deleteBuildingApi(b.id);
-      setBuildings((current) => current.filter((item) => item.id !== b.id));
+      await syncResources();
       setSuccessMessage("Building deleted.");
     } catch (error) {
       setErrorMessage(error.message);
@@ -276,9 +260,7 @@ export function useCampusResources({ setErrorMessage, setSuccessMessage, setIsLo
     if (!window.confirm(`Delete floor ${f.label}?`)) return;
     try {
       await deleteFloorApi(f.id);
-      setBuildings((current) =>
-        current.map((b) => ({ ...b, floors: b.floors.filter((item) => item.id !== f.id) }))
-      );
+      await syncResources();
       setSuccessMessage("Floor deleted.");
     } catch (error) {
       setErrorMessage(error.message);
@@ -307,7 +289,7 @@ export function useCampusResources({ setErrorMessage, setSuccessMessage, setIsLo
     if (!window.confirm(`Delete room ${r.name}?`)) return;
     try {
       await deleteRoomApi(r.id);
-      setRooms((current) => current.filter((item) => item.id !== r.id));
+      await syncResources();
       setSuccessMessage("Room deleted.");
     } catch (error) {
       setErrorMessage(error.message);
